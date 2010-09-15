@@ -34,10 +34,10 @@ document.onmousemove = mouseMove;
 document.onmouseup = mouseUp;
 //document.contextmenu = doNothing;
 
-var dragObject = null;
+var currentObject = null;
 var mouseOffset = null;
 
-var turnObject = null;
+var currentAction = null;
 
 function doNothing(ev) {
 }
@@ -161,31 +161,36 @@ function degreesToRadians(deg) {
 	return Math.PI * 2 * deg / 360;
 }
 
+function dragMove(mousePos) {
+    currentObject.style.position = 'absolute';
+    currentObject.style.top = mousePos.y - mouseOffset.y;
+    currentObject.style.left = mousePos.x - mouseOffset.x;
+    if (moveToEnd(draggables, currentObject)) {
+        fixZOrder(draggables);
+    }
+		
+    return false;
+}
+
+function dragFlipAndRotate(mousePos) {
+    currentObject.style.position = 'absolute';
+    var relativePosition = getRelativePosition(mousePos, currentObject);
+    if (currentObject.images[relativePosition]) {
+        currentObject.src = currentObject.images[relativePosition];
+    }
+    if (currentObject.rotations[relativePosition] !== undefined) {
+        transform = "rotate(" + currentObject.rotations[relativePosition] + "deg)";
+        currentObject.style.webkitTransform = transform;
+        currentObject.style.MozTransform = transform;
+    }
+    return false;
+}
+
 function mouseMove(ev) {
 	ev = ev || window.event;
 	var mousePos = mouseCoords(ev);
-	if (dragObject) {
-		dragObject.style.position = 'absolute';
-		dragObject.style.top = mousePos.y - mouseOffset.y;
-		dragObject.style.left = mousePos.x - mouseOffset.x;
-		if (moveToEnd(draggables, dragObject)) {
-			fixZOrder(draggables);
-		}
-		
-		return false;
-	}
-	if (turnObject) {
-		turnObject.style.position = 'absolute';
-	    var relativePosition = getRelativePosition(mousePos, turnObject);
-	    if (turnObject.images[relativePosition]) {
-		    turnObject.src = turnObject.images[relativePosition];
-		}
-	    if (turnObject.rotations[relativePosition] !== undefined) {
-		    transform = "rotate(" + turnObject.rotations[relativePosition] + "deg)";
-			turnObject.style.webkitTransform = transform;
-			turnObject.style.MozTransform = transform;
-		}
-		return false;
+	if (currentObject && currentAction) {
+	    currentAction(mousePos);
 	}
 }
 
@@ -193,8 +198,8 @@ function mouseDown(ev) {
 }
 
 function mouseUp() {
-	dragObject = null;
-	turnObject = null;
+	currentObject = null;
+	currentAction = null;
 	return false;
 }
 
@@ -202,14 +207,14 @@ function makeDraggable(item) {
 	if (!item) return;
 	item.onmousedown = function(ev) {
 		if (getButton(ev) == 'left' && !ev.shiftKey) {
-			dragObject = this;
-			turnObject = null;
+			currentObject = this;
 			mouseOffset = getMouseOffset(this, ev);
+			currentAction = dragMove;
 			mouseMove(ev);
 		} 
 		else {
-			turnObject = this;
-			dragObject = null;
+			currentObject = this;
+			currentAction = dragFlipAndRotate;
 			mouseMove(ev);
 		}
 		return false;
