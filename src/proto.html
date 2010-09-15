@@ -13,6 +13,8 @@ document.onmouseup = mouseUp;
 var dragObject = null;
 var mouseOffset = null;
 
+var turnObject = null;
+
 function mouseCoords(ev) {
 	if (ev.pageX || ev.pageY) {
 		return {x:ev.pageX, y:ev.pageY};
@@ -45,6 +47,18 @@ function getPosition(e) {
 	return {x:left, y:top};
 }
 
+var whichButton = [0, 'left', 'middle', 'right'];
+var buttonButton = [0, 'left', 'right', 0, 'middle'];
+
+function getButton(e) {
+    if (event.which) {
+        return whichButton[event.which];
+    }
+    else {
+        return buttonButton[event.button];
+    }
+}
+
 function moveToEnd(array, item) {
 	if (array.length < 1) return false;
 	if (array[array.length - 1] === item) return false;
@@ -71,11 +85,27 @@ function fixNegativeZOrder(array) {
 
 var draggables = new Array();
 
+function isPositionInBox(pos, obj) {
+	if (pos.x < obj.style.left) {
+		return false;
+	}
+	if (pos.x > obj.style.left + obj.style.width) {
+		return false;
+	}
+	if (pos.y < obj.style.top) {
+		return false;
+	}
+	if (pos.y > obj.style.top + obj.style.height) {
+		return false;
+	}
+	return true;
+}
+
 function mouseMove(ev) {
 	ev = ev || window.event;
 	var mousePos = mouseCoords(ev);
 	
-	if(dragObject) {
+	if (dragObject) {
 		dragObject.style.position = 'absolute';
 		dragObject.style.top = mousePos.y - mouseOffset.y;
 		dragObject.style.left = mousePos.x - mouseOffset.x;
@@ -85,10 +115,19 @@ function mouseMove(ev) {
 		
 		return false;
 	}
+	if (turnObject) {
+		turnObject.style.position = 'absolute';
+		if (!isPositionInBox(mousePos, turnObject)) {
+			turnObject.src = "../card/back-blue-75-1.png";
+		}
+		return false;
+	}
 }
 
 function mouseUp() {
 	dragObject = null;
+	turnObject = null;
+	return false;
 }
 
 function makeDraggable(item) {
@@ -97,6 +136,9 @@ function makeDraggable(item) {
 		dragObject = this;
 		mouseOffset = getMouseOffset(this, ev);
 		mouseMove(ev);
+		if (getButton(ev) == 'right') {
+			item.src = "../card/back-blue-75-1.png";
+		}
 		return false;
 	}
 	draggables.push(item);
