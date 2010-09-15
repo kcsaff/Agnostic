@@ -1,18 +1,129 @@
-<HTML>
-<HEAD>
+<html>
+<head>
 
-<SCRIPT language="JavaScript">
+<script type="text/javascript">
 
 <!-- Howdy -->
 
 <!-- Begin
 
-function movepic(img_name,img_src) {
-document[img_name].src=img_src;
+document.onmousemove = mouseMove;
+document.onmouseup = mouseUp;
+
+var dragObject = null;
+var mouseOffset = null;
+
+function mouseCoords(ev) {
+	if (ev.pageX || ev.pageY) {
+		return {x:ev.pageX, y:ev.pageY};
+	}
+	return {
+		x:ev.clientX + document.body.scrollLeft - document.body.clientLeft,
+		y:ev.clientY + document.body.scrollTop - document.body.clientTop
+	};
 }
 
-// End -->
-</SCRIPT>
+function getMouseOffset(target, ev) {
+	ev = ev || window.event;
+	var docPos = getPosition(target);
+	var mousePos = mouseCoords(ev);
+	return {x:mousePos.x - docPos.x, y:mousePos.y - docPos.y};
+}
 
-</HEAD>
-</HTML>
+function getPosition(e) {
+	var left = 0;
+	var top = 0;
+	
+	while (e.offsetParent) {
+		left += e.offsetLeft;
+		top += e.offsetTop;
+		e = e.offsetParent;
+	}
+	left += e.offsetLeft;
+	top += e.offsetTop;
+	
+	return {x:left, y:top};
+}
+
+function moveToEnd(array, item) {
+	if (array.length < 1) return false;
+	if (array[array.length - 1] === item) return false;
+	var found = -1;
+	for (var i = 0; i < array.length; ++i) {
+		if (array[i] === item) {
+			found = i;
+			break;
+		}
+	}
+	if (found == -1) return false;
+	for (var i = found; i < array.length - 1; ++i) {
+		array[i] = array[i + 1];
+	}
+	array[array.length - 1] = item;
+	return true;
+}
+
+function fixNegativeZOrder(array) {
+	for (var i = 0; i < array.length; ++i) {
+		array[i].style.zIndex = i - array.length;
+	}
+}
+
+var draggables = new Array();
+
+function mouseMove(ev) {
+	ev = ev || window.event;
+	var mousePos = mouseCoords(ev);
+	
+	if(dragObject) {
+		dragObject.style.position = 'absolute';
+		dragObject.style.top = mousePos.y - mouseOffset.y;
+		dragObject.style.left = mousePos.x - mouseOffset.x;
+		if (moveToEnd(draggables, dragObject)) {
+			fixNegativeZOrder(draggables);
+		}
+		
+		return false;
+	}
+}
+
+function mouseUp() {
+	dragObject = null;
+}
+
+function makeDraggable(item) {
+	if (!item) return;
+	item.onmousedown = function(ev) {
+		dragObject = this;
+		mouseOffset = getMouseOffset(this, ev);
+		mouseMove(ev);
+		return false;
+	}
+	draggables.push(item);
+	//item.style.position = 'absolute';
+}
+
+
+// End -->
+</script>
+
+</head>
+
+<body>
+
+<img src="../card/clubs-3-75.png" />
+<img src="../card/clubs-5-75.png" />
+
+<script type="text/javascript">
+<!-- 
+elements = document.getElementsByTagName("img");
+for (i=0; i < elements.length; ++i) {
+	makeDraggable(elements[i]);
+}
+
+ //-->
+ </script>
+
+</body>
+
+</html>
