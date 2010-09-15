@@ -1,15 +1,38 @@
 <html>
 <head>
 
+<!--
+
+# Copyright (C) 2010 by Kevin Saff
+
+# This file is part of Agnostic.
+
+# Agnostic is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# Agnostic is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+
+
 <script type="text/javascript">
 
 <!-- Howdy -->
 
 <!-- Begin
 
+//document.onmousedown = mouseDown;
 document.onmousemove = mouseMove;
 document.onmouseup = mouseUp;
-document.contextmenu = doNothing;
+//document.contextmenu = doNothing;
 
 var dragObject = null;
 var mouseOffset = null;
@@ -51,10 +74,10 @@ function getPosition(e) {
 	return {x:left, y:top};
 }
 
-var whichButton = [0, 'left', 'middle', 'right'];
-var buttonButton = [0, 'left', 'right', 0, 'middle'];
+var whichButton = [0, 'left', 'middle', 'right']; //most
+var buttonButton = ['left', 'left', 'right', 0, 'middle']; //IE
 
-function getButton(e) {
+function getButton(event) {
     if (event.which) {
         return whichButton[event.which];
     }
@@ -102,19 +125,15 @@ function isPositionInBox(pos, obj) {
 	var left = parseInt(obj.style.left)
 	var top = parseInt(obj.style.top)
 	if (pos.x < left) {
-		//alert('left');
 		return false;
 	}
 	if (pos.x > left + obj.width) {
-		//alert('right');
 		return false;
 	}
 	if (pos.y < top) {
-		//alert('top');
 		return false;
 	}
 	if (pos.y > top + obj.height) {
-		//alert('bottom');
 		return false;
 	}
 	return true;
@@ -145,7 +164,6 @@ function degreesToRadians(deg) {
 function mouseMove(ev) {
 	ev = ev || window.event;
 	var mousePos = mouseCoords(ev);
-	
 	if (dragObject) {
 		dragObject.style.position = 'absolute';
 		dragObject.style.top = mousePos.y - mouseOffset.y;
@@ -162,11 +180,16 @@ function mouseMove(ev) {
 	    if (turnObject.images[relativePosition]) {
 		    turnObject.src = turnObject.images[relativePosition];
 		}
-	    if (turnObject.rotations[relativePosition]) {
-			turnObject.style.rotate(turnObject.rotations[relativePosition]);
+	    if (turnObject.rotations[relativePosition] !== undefined) {
+		    transform = "rotate(" + turnObject.rotations[relativePosition] + "deg)";
+			turnObject.style.webkitTransform = transform;
+			turnObject.style.MozTransform = transform;
 		}
 		return false;
 	}
+}
+
+function mouseDown(ev) {
 }
 
 function mouseUp() {
@@ -185,8 +208,6 @@ function makeDraggable(item) {
 			mouseMove(ev);
 		} 
 		else {
-			//alert(getButton(ev));
-			//alert('no');
 			turnObject = this;
 			dragObject = null;
 			mouseMove(ev);
@@ -200,12 +221,6 @@ function makeDraggable(item) {
 function createCard(front, back) {
     card = document.createElement("img");
     card.src = front;
-	card.images = {'in': front,
-				   'left': back,
-				   'right': back,
-				   'up': back,
-				   'down': back,
-					};
 	card.images = {
 				   'left': front,
 				   'right': back,
@@ -214,16 +229,18 @@ function createCard(front, back) {
 					};
 	card.rotations = {
 					'left': 90,
-					'top': 0,
 					'right': 90,
+					'up': 0,
 					'down': 0,
 					};
     makeDraggable(card);
     card.style.position = "absolute";
-    card.style.top = 1;
-    card.style.left = 1;
+    card.style.top = 100;
+    card.style.left = 100;
+    card.style.zIndex = 1;
 	card.src = front;
 	document.getElementById("cards").appendChild(card);
+	//document.getElementById("cards").onmousedown = mouseDown;
     return card;
 }
 
@@ -239,16 +256,10 @@ Hi.
 
 <body>
 
-<!--
-<img src="../card/clubs-3-75.png" />
-<img src="../card/clubs-5-75.png" />
--->
 
 <script type="text/javascript">
 <!-- 
-//elements = document.getElementsByTagName("img");
-//for (i=0; i < elements.length; ++i) {
-//	makeDraggable(elements[i]);
+
 createCard("../card/clubs-3-75.png", "../card/back-blue-75-1.png");
 createCard("../card/clubs-5-75.png", "../card/back-blue-75-1.png");
 
