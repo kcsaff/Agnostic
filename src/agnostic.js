@@ -95,7 +95,7 @@ function fixZOrder(array) {
 }
 
 var draggables = new Array();
-var oneTime = 0;
+var oneTime = 1;
 
 function isPositionInBox(pos, obj) {
     pos = rotateAround(getObjectCenter(obj), pos, 
@@ -131,9 +131,12 @@ function getObjectCenter(obj) {
 	return {x: left + obj.width / 2, y: top + obj.height / 2};
 }
 
+function getAbsoluteRotation(center, point) { //in radians
+    return Math.atan2(point.y  - center.y, point.x  - center.x);
+}
+
 function getRelativeRotation(center, first, last) { //in radians
-    return Math.atan2(last.y  - center.y, last.x  - center.x) 
-         - Math.atan2(first.y - center.y, first.x - center.x);
+    return getAbsoluteRotation(center, last) - getAbsoluteRotation(center, first);
 }
 
 function getRelative(point1, point2) {
@@ -146,14 +149,27 @@ function applyRelative(point1, point2) {
 	    y:point2.y + point1.y};
 }
 
+function vectorLength(rel) {
+    return Math.sqrt(rel.x * rel.x + rel.y * rel.y);
+}
+
+function vectorMultiply(v, amount) {
+    return {x:v.x * amount,
+	    y:v.y * amount};
+}
+
+function distance(point1, point2) {
+    return vectorLength(getRelative(point1, point2));
+}
+
 function rotateAround(center, point, radians) {
-    //alert("" + radians + " " + point);
     if (!radians) return point;
-    //alert("hi");
-    rel = getRelative(center, point);
-    rotated_rel = {x:rel.x * Math.cos(radians) - rel.y * Math.sin(radians),
-		   y:rel.x * Math.sin(radians) + rel.y * Math.cos(radians)};
-    return applyRelative(center, rotated_rel);
+    return applyRelative(center, rotateVector(getRelative(center, point), radians));
+}
+
+function rotateVector(rel, radians) {
+    return {x:rel.x * Math.cos(radians) - rel.y * Math.sin(radians),
+	    y:rel.x * Math.sin(radians) + rel.y * Math.cos(radians)};
 }
 
 function getRelativePosition(pos, obj) {
@@ -189,6 +205,7 @@ function radiansToDegrees(rad) {
 function cleanupDegrees(deg) {
 	deg = deg % 360;
 	while (deg < 0) deg += 360;
+        return deg;
 	snapping = arguments[1] || 90;
 	closeness = arguments[2] || 10;
 	for (var snap=0; snap < 360; snap += snapping) {
@@ -205,9 +222,33 @@ function dragMove(object, event) {
     result.move = function (mousePos) {
         this.object.style.top = mousePos.y - this.mouseOffset.y;
         this.object.style.left = mousePos.x - this.mouseOffset.x;
-        if (moveToEnd(draggables, this.object)) {
-            fixZOrder(draggables);
-        }
+        return false;
+    }
+    return result;
+}
+
+function dragMoveAndRotate(object, event) {
+    result = {};
+    result.object = object;
+    result.object.style.position = "absolute";
+    result.mouseOffset = getMouseOffset(object, event);
+    result.lastPos = mouseCoords(event);
+    var center = getObjectCenter(object);
+    result.offset = getRelative(center, mouseCoords(event));
+    result.firstRotation = object.currentRotation || 0;
+    result.move = function (mousePos) {
+	if (mousePos.x == this.lastPos.x && mousePos.y == this.lastPos.y) {
+	    return false;
+	}
+        var oldCenter = getObjectCenter(this.object);
+	var newRotation = getRelativeRotation(oldCenter, this.lastPos, mousePos);
+	applyRelativeRotation(this.object, newRotation);
+	var newRelativePoint = rotateVector(this.offset, 
+					    degreesToRadians((this.object.currentRotation || 0)
+							      - this.firstRotation) ); 
+	newCenter = applyRelative(mousePos, vectorMultiply(newRelativePoint, -1.0));
+        applyAbsoluteCenter(this.object, newCenter);
+	this.lastPos = mousePos;
         return false;
     }
     return result;
@@ -238,6 +279,30 @@ function dragFlip(object, event) {
     return result;
 }
 
+function applyAbsoluteRotation(object, radians, degrees) {
+    object.currentRotation = cleanupDegrees((degrees || 0) 
+					    + radiansToDegrees(radians));
+    transform = "rotate(" + object.currentRotation + "deg)";
+    object.style.webkitTransform = transform;
+    object.style.MozTransform = transform;
+}
+
+function applyRelativeRotation(object, radians) {
+    applyAbsoluteRotation(object, radians, object.currentRotation || 0);
+}
+
+function applyAbsoluteCenter(object, point) {
+    object.style.left = point.x - object.width / 2;
+    object.style.top = point.y - object.height / 2; 
+}
+
+function applyRelativePosition(object, vector) {
+    var left = parseInt(object.style.left);
+    var top = parseInt(object.style.top);
+    object.style.left = left + vector.x;
+    object.style.top = top + vector.y;
+}
+
 function dragArbitraryRotate(object, event) {
     result = {};
     result.object = object;
@@ -248,11 +313,7 @@ function dragArbitraryRotate(object, event) {
         newRotation = getRelativeRotation(getObjectCenter(this.object),
                                           this.mouseFirstPos,
                                           mousePos);
-        this.object.currentRotation = cleanupDegrees(this.firstRotation 
-                                                     + radiansToDegrees(newRotation));
-        transform = "rotate(" + this.object.currentRotation + "deg)";
-        this.object.style.webkitTransform = transform;
-        this.object.style.MozTransform = transform;
+	applyAbsoluteRotation(this.object, newRotation, this.firstRotation);
         return false;
     }
     return result;
@@ -284,10 +345,13 @@ function makeDraggable(item) {
 			betterAction = dragFlip(this, ev);
 		} 
 		else if (getButton(ev) == 'left') {
-			betterAction = dragMove(this, ev);
+			betterAction = dragMoveAndRotate(this, ev);
 		} 
 		if (betterAction) {
-			mouseMove(ev);
+		    if (moveToEnd(draggables, this)) {
+			fixZOrder(draggables);
+		    }
+		    mouseMove(ev);
 		}
 		return false;
 	}
