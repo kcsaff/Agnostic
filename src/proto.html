@@ -275,7 +275,7 @@ function makeDraggable(item) {
 		else if (getButton(ev) == 'left') {
 			betterAction = dragMove(this, ev);
 		} 
-		if (betterAction || currentAction) {
+		if (betterAction) {
 			mouseMove(ev);
 		}
 		return false;
