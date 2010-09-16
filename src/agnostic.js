@@ -357,9 +357,6 @@ function makeDraggable(item) {
 		|| (getButton(ev) == 'left' && ev.shiftKey)) {
 			betterAction = dragFlip(this, ev);
 		} 
-		/*else if (getButton(ev) == 'left' && ev.ctrlKey) {
-			betterAction = dragFlip(this, ev);
-		} */
 		else if (getButton(ev) == 'left') {
 			betterAction = dragMoveAndRotate(this, ev);
 		} 
