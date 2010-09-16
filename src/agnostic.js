@@ -98,29 +98,31 @@ var draggables = new Array();
 var oneTime = 0;
 
 function isPositionInBox(pos, obj) {
-	if (oneTime-- > 0) {
-		alert('x: ' + pos.x + ', y:' + pos.y +
-			  ',\n l:' + obj.style.left + ', t:' + obj.style.top +
-			  ',\n w:' + obj.width + ', h:' + obj.height +
-			  ',\n tl:' + typeof obj.left + ', tt:' + typeof obj.top +
-			  ',\n tw:' + typeof obj.width + ', th:' + typeof obj.height 
-			  );
-	}
-	var left = parseInt(obj.style.left);
-	var top = parseInt(obj.style.top);
-	if (pos.x < left) {
-		return false;
-	}
-	if (pos.x > left + obj.width) {
-		return false;
-	}
-	if (pos.y < top) {
-		return false;
-	}
-	if (pos.y > top + obj.height) {
-		return false;
-	}
-	return true;
+    pos = rotateAround(getObjectCenter(obj), pos, 
+		       -degreesToRadians(obj.currentRotation))
+    if (oneTime-- > 0) {
+	    alert('x: ' + pos.x + ', y:' + pos.y +
+		  ',\n l:' + obj.style.left + ', t:' + obj.style.top +
+		  ',\n w:' + obj.width + ', h:' + obj.height +
+		  ',\n tl:' + typeof obj.left + ', tt:' + typeof obj.top +
+		  ',\n tw:' + typeof obj.width + ', th:' + typeof obj.height 
+		  );
+    }
+    var left = parseInt(obj.style.left);
+    var top = parseInt(obj.style.top);
+    if (pos.x < left) {
+	return false;
+    }
+    if (pos.x > left + obj.width) {
+	return false;
+    }
+    if (pos.y < top) {
+	return false;
+    }
+    if (pos.y > top + obj.height) {
+	return false;
+    }
+    return true;
 }
 
 function getObjectCenter(obj) {
@@ -129,27 +131,49 @@ function getObjectCenter(obj) {
 	return {x: left + obj.width / 2, y: top + obj.height / 2};
 }
 
-function getRelativeRotation(center, first, last) {
+function getRelativeRotation(center, first, last) { //in radians
     return Math.atan2(last.y  - center.y, last.x  - center.x) 
          - Math.atan2(first.y - center.y, first.x - center.x);
 }
 
+function getRelative(point1, point2) {
+    return {x:point2.x - point1.x, 
+	    y:point2.y - point1.y};
+}
+
+function applyRelative(point1, point2) {
+    return {x:point2.x + point1.x, 
+	    y:point2.y + point1.y};
+}
+
+function rotateAround(center, point, radians) {
+    //alert("" + radians + " " + point);
+    if (!radians) return point;
+    //alert("hi");
+    rel = getRelative(center, point);
+    rotated_rel = {x:rel.x * Math.cos(radians) - rel.y * Math.sin(radians),
+		   y:rel.x * Math.sin(radians) + rel.y * Math.cos(radians)};
+    return applyRelative(center, rotated_rel);
+}
+
 function getRelativePosition(pos, obj) {
-	var left = parseInt(obj.style.left)
-	var top = parseInt(obj.style.top)
-	var result = "in";
-	var badness = 0;
-	var bad = [left - pos.x, pos.x - (left + obj.width),
-			   top - pos.y, pos.y - (top + obj.height)];
+    pos = rotateAround(getObjectCenter(obj), pos, 
+		       -degreesToRadians(obj.currentRotation))
+    var left = parseInt(obj.style.left);
+    var top = parseInt(obj.style.top);
+    var result = "in";
+    var badness = 0;
+    var bad = [left - pos.x, pos.x - (left + obj.width),
+	       top - pos.y, pos.y - (top + obj.height)];
     var names = ["left", "right", "up", "down"];
     for (var i=0; i < 4; ++i) {
         if (bad[i] > badness) {
-		    badness = bad[i];
-		    result = names[i];
-		}
+	    badness = bad[i];
+	    result = names[i];
 	}
+    }
     
-	return result;
+    return result;
 }
 
 
