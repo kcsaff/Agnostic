@@ -34,14 +34,6 @@ document.onmousemove = mouseMove;
 document.onmouseup = mouseUp;
 //document.contextmenu = doNothing;
 
-var currentObject = null;
-var mouseOffset = null;
-var mouseFirstPos = null;
-var currentFirstRotation = 0;
-
-var currentAction = null;
-var currentFlipped = false;
-
 var betterAction = null;
 
 function doNothing(ev) {
@@ -197,9 +189,9 @@ function cleanupDegrees(deg) {
 function dragMove(object, event) {
     result = {};
     result.object = object;
+    result.object.style.position = "absolute";
     result.mouseOffset = getMouseOffset(object, event);
     result.move = function (mousePos) {
-        this.object.style.position = 'absolute';
         this.object.style.top = mousePos.y - this.mouseOffset.y;
         this.object.style.left = mousePos.x - this.mouseOffset.x;
         if (moveToEnd(draggables, this.object)) {
@@ -210,61 +202,49 @@ function dragMove(object, event) {
     return result;
 }
 
-function _dragMove(mousePos) {
-    currentObject.style.position = 'absolute';
-    currentObject.style.top = mousePos.y - mouseOffset.y;
-    currentObject.style.left = mousePos.x - mouseOffset.x;
-    if (moveToEnd(draggables, currentObject)) {
-        fixZOrder(draggables);
+function dragFlip(object, event) {
+    result = {};
+    result.object = object;
+    result.object.style.position = "absolute";
+    result.object.image_index = result.object.image_index || 0;
+    result.flipped = false;
+    result.move = function (mousePos) {
+        var shouldFlip = !isPositionInBox(mousePos, this.object);
+        if (shouldFlip && !this.flipped && this.object.images) {
+            ++this.object.image_index;
+            this.object.image_index %= this.object.images.length;
+            this.flipped = shouldFlip;
+        }
+        else if (false && !shouldFlip && this.flipped && this.object.images) {
+            --this.object.image_index;
+            this.object.image_index += this.object.images.length; //silly javascript    
+            this.object.image_index %= this.object.images.length;
+            this.flipped = shouldFlip;
+        }
+        this.object.src = this.object.images[this.object.image_index];
+        return false; 
     }
-		
-    return false;
+    return result;
 }
 
-function dragFlip(mousePos) {
-    currentObject.style.position = "absolute";
-    var shouldFlip = !isPositionInBox(mousePos, currentObject);
-    if (shouldFlip && !currentFlipped && currentObject.flip) {
-        first = currentObject.flip.shift();
-        currentObject.flip.push(first);
-        currentFlipped = shouldFlip;
+function dragArbitraryRotate(object, event) {
+    result = {};
+    result.object = object;
+    result.object.style.position = "absolute";
+    result.mouseFirstPos = mouseCoords(event);
+    result.firstRotation = object.currentRotation || 0;
+    result.move = function (mousePos) {
+        newRotation = getRelativeRotation(getObjectCenter(this.object),
+                                          this.mouseFirstPos,
+                                          mousePos);
+        this.object.currentRotation = cleanupDegrees(this.firstRotation 
+                                                     + radiansToDegrees(newRotation));
+        transform = "rotate(" + this.object.currentRotation + "deg)";
+        this.object.style.webkitTransform = transform;
+        this.object.style.MozTransform = transform;
+        return false;
     }
-    else if (!shouldFlip && currentFlipped && currentObject.flip) {
-        //last = currentObject.flip.pop();
-        //currentObject.flip.unshift(last);
-        //currentFlipped = shouldFlip;
-    }
-    currentObject.src = currentObject.flip[0];
-    return false; 
-}
-
-function dragFlipAndRotate(mousePos) {
-
-    currentObject.style.position = "absolute";
-    var relativePosition = getRelativePosition(mousePos, currentObject);
-    if (currentObject.images[relativePosition]) {
-        currentObject.src = currentObject.images[relativePosition];
-    }
-    if (currentObject.rotations[relativePosition] !== undefined) {
-        transform = "rotate(" + currentObject.rotations[relativePosition] + "deg)";
-        currentObject.style.webkitTransform = transform;
-        currentObject.style.MozTransform = transform;
-    }
-    return false;
-}
-
-function dragArbitraryRotate(mousePos) {
-    newRotation = getRelativeRotation(getObjectCenter(currentObject),
-                                      mouseFirstPos,
-                                      mousePos);
-    //alert(newRotation);
-    currentObject.currentRotation = cleanupDegrees(currentFirstRotation 
-                                                   + radiansToDegrees(newRotation));
-    transform = "rotate(" + currentObject.currentRotation + "deg)";
-    currentObject.style.webkitTransform = transform;
-    currentObject.style.MozTransform = transform;
-    //alert("rotated!");
-    return false;
+    return result;
 }
 
 function mouseMove(ev) {
@@ -273,9 +253,6 @@ function mouseMove(ev) {
 	if (betterAction && getButton(ev)) {
 	    return betterAction.move(mousePos);
 	}
-	else if (currentObject && currentAction && getButton(ev)) {
-	    return currentAction(mousePos);
-	}
 }
 
 function mouseDown(ev) {
@@ -283,62 +260,33 @@ function mouseDown(ev) {
 
 function mouseUp() {
 	betterAction = null;
-	currentObject = null;
-	currentAction = null;
 	return false;
 }
 
 function makeDraggable(item) {
 	if (!item) return;
 	item.onmousedown = function(ev) {
-		if (getButton(ev) == 'left' && ev.altKey) {
-			currentObject = this;
-			currentAction = dragFlipAndRotate;
-			mouseMove(ev);
-		}
-		else if (getButton(ev) == 'left' && ev.shiftKey) {
-			currentObject = this;
-			currentAction = dragArbitraryRotate;
-			currentFirstRotation = this.currentRotation || 0;
-                        mouseFirstPos = mouseCoords(ev);
-			mouseMove(ev);
+		if (getButton(ev) == 'left' && ev.shiftKey) {
+			betterAction = dragArbitraryRotate(this, ev);
 		} 
 		else if (getButton(ev) == 'left' && ev.ctrlKey) {
-			currentObject = this;
-			currentAction = dragFlip;
-			currentFlipped = false;
-			mouseMove(ev);
+			betterAction = dragFlip(this, ev);
 		} 
 		else if (getButton(ev) == 'left') {
 			betterAction = dragMove(this, ev);
-			mouseMove(ev);
-			//currentObject = this;
-			//mouseOffset = getMouseOffset(this, ev);
-			//currentAction = dragMove;
-			//mouseMove(ev);
 		} 
+		if (betterAction || currentAction) {
+			mouseMove(ev);
+		}
 		return false;
 	}
 	draggables.push(item);
-	//item.style.position = 'absolute';
 }
 
 function createCard(front, back) {
     card = document.createElement("img");
     card.src = front;
-    card.images = {
-				   'left': front,
-				   'right': back,
-				   'up': front,
-				   'down': back,
-					};
-    card.rotations = {
-					'left': 90,
-					'right': 90,
-					'up': 0,
-					'down': 0,
-					};
-    card.flip = [front, back];
+    card.images = [front, back];
     makeDraggable(card);
     card.style.position = "absolute";
     card.style.top = 100;
@@ -359,7 +307,7 @@ function createCard(front, back) {
 <div id="cards">
 Drag left mouse button to move.<br />
 Hold shift and drag to rotate.<br />
-Hold alt and drag to flip.<br />
+Hold ctrl and drag to flip.<br />
 </div>
 
 <body>
