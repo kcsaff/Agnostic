@@ -89,9 +89,9 @@ function moveToEnd(array, item) {
 }
 
 function fixZOrder(array) {
-	for (var i = 0; i < array.length; ++i) {
-		array[i].style.zIndex = i;
-	}
+    for (var i = 0; i < array.length; ++i) {
+	array[i].style.zIndex = (array[i].baseZ || 0) + i;
+    }
 }
 
 var draggables = new Array();
@@ -255,6 +255,15 @@ function dragMoveAndRotate(object, event) {
     return result;
 }
 
+function doFlip(object, amount) {
+    object.image_index = (object.image_index || 0) + (amount == undefined) ? 1 : amount;
+    object.image_index %= object.images.length;
+    if (object.image_index < 0) {
+	object.image_index += object.images.length;
+    }
+    object.src = object.images[object.image_index];
+}
+
 function dragFlip(object, event) {
     result = {};
     result.object = object;
@@ -264,17 +273,13 @@ function dragFlip(object, event) {
     result.move = function (mousePos) {
         var shouldFlip = !isPositionInBox(mousePos, this.object);
         if (shouldFlip && !this.flipped && this.object.images) {
-            ++this.object.image_index;
-            this.object.image_index %= this.object.images.length;
-            this.flipped = shouldFlip;
+            doFlip(this.object, +1);
+	    this.flipped = true;
         }
         else if (false && !shouldFlip && this.flipped && this.object.images) {
-            --this.object.image_index;
-            this.object.image_index += this.object.images.length; //silly javascript    
-            this.object.image_index %= this.object.images.length;
-            this.flipped = shouldFlip;
+            doFlip(this.object, -1);
+	    this.flipped = false;
         }
-        this.object.src = this.object.images[this.object.image_index];
         return false; 
     }
     return result;
@@ -369,6 +374,16 @@ function makeDraggable(item) {
 	draggables.push(item);
 }
 
+function randomLocation() {
+    return {x:parseInt(Math.random() * (window.innerWidth - 100) + 50),
+	    y:parseInt(Math.random() * (window.innerHeight - 100) + 50)};
+}
+
+function throwRandomly(object) {
+    applyAbsoluteCenter(object, randomLocation());
+    applyAbsoluteRotation(object, 0, Math.random() * 360);
+}
+
 function createCard(front, back) {
     card = document.createElement("img");
     card.src = front;
@@ -378,9 +393,28 @@ function createCard(front, back) {
     card.style.top = 100;
     card.style.left = 100;
     card.style.zIndex = 1;
-	card.src = front;
-	document.getElementById("cards").appendChild(card);
-	//document.getElementById("cards").onmousedown = mouseDown;
+    card.baseZ = 0;
+    throwRandomly(card);
+    if (Math.random() < 0.33) {
+	doFlip(card, 1);
+    }
+    document.getElementById("cards").appendChild(card);
     return card;
+}
+
+function createPyramid(src, size) {
+    pyramid = document.createElement("img");
+    pyramid.src = src;
+    pyramid.images = [src];
+    makeDraggable(pyramid);
+    pyramid.style.position = "absolute";
+    pyramid.style.top = 100;
+    pyramid.style.left = 100;
+    pyramid.style.zIndex = 1;
+    pyramid.width *= size;
+    pyramid.baseZ = 200;
+    throwRandomly(pyramid);
+    document.getElementById("cards").appendChild(pyramid);
+    return pyramid;
 }
 
