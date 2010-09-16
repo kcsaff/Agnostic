@@ -407,8 +407,16 @@ function createPyramid(src, size) {
     pyramid.style.position = "absolute";
     pyramid.style.top = 100;
     pyramid.style.left = 100;
-    pyramid.style.zIndex = 1;
-    pyramid.width *= size;
+    pyramid.style.zIndex = 200;
+    pyramid.onload = function() {
+      if (this.width) {
+        this.width *= size;
+      }
+      /*if (pyramid.style.width) {
+        pyramid.style.width = parseInt(pyramid.style.width) * size;
+      }*/
+    };
+    //pyramid.width *= size;
     pyramid.baseZ = 200;
     throwRandomly(pyramid);
     document.getElementById("cards").appendChild(pyramid);
