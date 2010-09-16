@@ -100,14 +100,6 @@ var oneTime = 1;
 function isPositionInBox(pos, obj) {
     pos = rotateAround(getObjectCenter(obj), pos, 
 		       -degreesToRadians(obj.currentRotation))
-    if (oneTime-- > 0) {
-	    alert('x: ' + pos.x + ', y:' + pos.y +
-		  ',\n l:' + obj.style.left + ', t:' + obj.style.top +
-		  ',\n w:' + obj.width + ', h:' + obj.height +
-		  ',\n tl:' + typeof obj.left + ', tt:' + typeof obj.top +
-		  ',\n tw:' + typeof obj.width + ', th:' + typeof obj.height 
-		  );
-    }
     var left = parseInt(obj.style.left);
     var top = parseInt(obj.style.top);
     if (pos.x < left) {
@@ -206,12 +198,13 @@ function cleanupDegrees(deg) {
 	deg = deg % 360;
 	while (deg < 0) deg += 360;
         return deg;
-	snapping = arguments[1] || 90;
-	closeness = arguments[2] || 10;
-	for (var snap=0; snap < 360; snap += snapping) {
-		if (Math.abs(deg - snap) < closeness) deg = snap;
-        }
-        return deg;
+}
+
+function snapDegrees(deg, increment, closeness) {
+    for (var snap=0; snap < 360 + increment; snap += increment) {
+	if (Math.abs(deg - snap) < closeness) deg = snap;
+    }
+    return deg % 360;
 }
 
 function dragMove(object, event) {
@@ -233,23 +226,31 @@ function dragMoveAndRotate(object, event) {
     result.object.style.position = "absolute";
     result.mouseOffset = getMouseOffset(object, event);
     result.lastPos = mouseCoords(event);
-    var center = getObjectCenter(object);
-    result.offset = getRelative(center, mouseCoords(event));
-    result.firstRotation = object.currentRotation || 0;
+    result.offset = rotateVector(getRelative(getObjectCenter(object), 
+					     mouseCoords(event)),
+				 -degreesToRadians(object.currentRotation || 0));
     result.move = function (mousePos) {
 	if (mousePos.x == this.lastPos.x && mousePos.y == this.lastPos.y) {
 	    return false;
 	}
-        var oldCenter = getObjectCenter(this.object);
-	var newRotation = getRelativeRotation(oldCenter, this.lastPos, mousePos);
-	applyRelativeRotation(this.object, newRotation);
-	var newRelativePoint = rotateVector(this.offset, 
-					    degreesToRadians((this.object.currentRotation || 0)
-							      - this.firstRotation) ); 
-	newCenter = applyRelative(mousePos, vectorMultiply(newRelativePoint, -1.0));
-        applyAbsoluteCenter(this.object, newCenter);
+	if (Math.abs(this.offset.x) < this.object.width / 4
+	    && Math.abs(this.offset.y) < this.object.height / 4) {//move only
+	    applyRelativePosition(this.object, getRelative(this.lastPos, mousePos));
+	}
+	else {
+	    var oldCenter = getObjectCenter(this.object);
+	    var newRotation = getRelativeRotation(oldCenter, this.lastPos, mousePos);
+	    applyRelativeRotation(this.object, newRotation);
+	    var newRelativePoint = rotateVector(this.offset, 
+						degreesToRadians(this.object.currentRotation || 0)); 
+	    newCenter = applyRelative(mousePos, vectorMultiply(newRelativePoint, -1.0));
+	    applyAbsoluteCenter(this.object, newCenter);
+	}
 	this.lastPos = mousePos;
         return false;
+    }
+    result.drop = function () {
+	snapRotation(this.object, 90, 12);
     }
     return result;
 }
@@ -277,6 +278,11 @@ function dragFlip(object, event) {
         return false; 
     }
     return result;
+}
+
+function snapRotation(object, increment, closeness) {
+    applyAbsoluteRotation(object, 0, snapDegrees(object.currentRotation || 0, 
+						 increment, closeness));
 }
 
 function applyAbsoluteRotation(object, radians, degrees) {
@@ -314,6 +320,7 @@ function dragArbitraryRotate(object, event) {
                                           this.mouseFirstPos,
                                           mousePos);
 	applyAbsoluteRotation(this.object, newRotation, this.firstRotation);
+	snapRotation(this.object, 90, 10);
         return false;
     }
     return result;
@@ -331,19 +338,23 @@ function mouseDown(ev) {
 }
 
 function mouseUp() {
-	betterAction = null;
-	return false;
+    if (betterAction && betterAction.drop) {
+	betterAction.drop();
+    }
+    betterAction = null;
+    return false;
 }
 
 function makeDraggable(item) {
 	if (!item) return;
 	item.onmousedown = function(ev) {
-		if (getButton(ev) == 'left' && ev.shiftKey) {
-			betterAction = dragArbitraryRotate(this, ev);
-		} 
-		else if (getButton(ev) == 'left' && ev.ctrlKey) {
+	    if (getButton(ev) == 'middle' 
+		|| (getButton(ev) == 'left' && ev.shiftKey)) {
 			betterAction = dragFlip(this, ev);
 		} 
+		/*else if (getButton(ev) == 'left' && ev.ctrlKey) {
+			betterAction = dragFlip(this, ev);
+		} */
 		else if (getButton(ev) == 'left') {
 			betterAction = dragMoveAndRotate(this, ev);
 		} 
