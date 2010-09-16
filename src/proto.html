@@ -36,6 +36,8 @@ document.onmouseup = mouseUp;
 
 var currentObject = null;
 var mouseOffset = null;
+var mouseFirstPos = null;
+var currentFirstRotation = 0;
 
 var currentAction = null;
 
@@ -122,8 +124,8 @@ function isPositionInBox(pos, obj) {
 			  ',\n tw:' + typeof obj.width + ', th:' + typeof obj.height 
 			  );
 	}
-	var left = parseInt(obj.style.left)
-	var top = parseInt(obj.style.top)
+	var left = parseInt(obj.style.left);
+	var top = parseInt(obj.style.top);
 	if (pos.x < left) {
 		return false;
 	}
@@ -137,6 +139,17 @@ function isPositionInBox(pos, obj) {
 		return false;
 	}
 	return true;
+}
+
+function getObjectCenter(obj) {
+	var left = parseInt(obj.style.left);
+	var top = parseInt(obj.style.top);
+	return {x: left + obj.width / 2, y: top + obj.height / 2};
+}
+
+function getRelativeRotation(center, first, last) {
+    return Math.atan2(last.y  - center.y, last.x  - center.x) 
+         - Math.atan2(first.y - center.y, first.x - center.x);
 }
 
 function getRelativePosition(pos, obj) {
@@ -157,8 +170,25 @@ function getRelativePosition(pos, obj) {
 	return result;
 }
 
+
+
 function degreesToRadians(deg) {
 	return Math.PI * 2 * deg / 360;
+}
+
+function radiansToDegrees(rad) {
+	return rad * 360 / (Math.PI * 2);
+}
+
+function cleanupDegrees(deg) {
+	deg = deg % 360;
+	while (deg < 0) deg += 360;
+	snapping = arguments[1] || 90;
+	closeness = arguments[2] || 10;
+	for (var snap=0; snap < 360; snap += snapping) {
+		if (Math.abs(deg - snap) < closeness) deg = snap;
+        }
+        return deg;
 }
 
 function dragMove(mousePos) {
@@ -173,7 +203,8 @@ function dragMove(mousePos) {
 }
 
 function dragFlipAndRotate(mousePos) {
-    currentObject.style.position = 'absolute';
+
+    currentObject.style.position = "absolute";
     var relativePosition = getRelativePosition(mousePos, currentObject);
     if (currentObject.images[relativePosition]) {
         currentObject.src = currentObject.images[relativePosition];
@@ -186,11 +217,25 @@ function dragFlipAndRotate(mousePos) {
     return false;
 }
 
+function dragArbitraryRotate(mousePos) {
+    newRotation = getRelativeRotation(getObjectCenter(currentObject),
+                                      mouseFirstPos,
+                                      mousePos);
+    //alert(newRotation);
+    currentObject.currentRotation = cleanupDegrees(currentFirstRotation 
+                                                   + radiansToDegrees(newRotation));
+    transform = "rotate(" + currentObject.currentRotation + "deg)";
+    currentObject.style.webkitTransform = transform;
+    currentObject.style.MozTransform = transform;
+    //alert("rotated!");
+    return false;
+}
+
 function mouseMove(ev) {
 	ev = ev || window.event;
 	var mousePos = mouseCoords(ev);
-	if (currentObject && currentAction) {
-	    currentAction(mousePos);
+	if (currentObject && currentAction && getButton(ev)) {
+	    return currentAction(mousePos);
 	}
 }
 
@@ -206,17 +251,30 @@ function mouseUp() {
 function makeDraggable(item) {
 	if (!item) return;
 	item.onmousedown = function(ev) {
-		if (getButton(ev) == 'left' && !ev.shiftKey) {
+		if (getButton(ev) == 'left' && ev.ctrlKey) {
+			currentObject = this;
+			currentAction = dragFlipAndRotate;
+			mouseMove(ev);
+		}
+		else if (getButton(ev) == 'left' && ev.shiftKey) {
+			currentObject = this;
+			currentAction = dragArbitraryRotate;
+			currentFirstRotation = this.currentRotation || 0;
+                        mouseFirstPos = mouseCoords(ev);
+			mouseMove(ev);
+		} 
+		else if (getButton(ev) == 'left' && ev.altKey) {
 			currentObject = this;
 			mouseOffset = getMouseOffset(this, ev);
 			currentAction = dragMove;
 			mouseMove(ev);
 		} 
-		else {
+		else if (getButton(ev) == 'left') {
 			currentObject = this;
-			currentAction = dragFlipAndRotate;
+			mouseOffset = getMouseOffset(this, ev);
+			currentAction = dragMove;
 			mouseMove(ev);
-		}
+		} 
 		return false;
 	}
 	draggables.push(item);
