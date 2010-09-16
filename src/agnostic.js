@@ -256,7 +256,7 @@ function dragMoveAndRotate(object, event) {
 }
 
 function doFlip(object, amount) {
-    object.image_index = (object.image_index || 0) + (amount == undefined) ? 1 : amount;
+    object.image_index = (object.image_index || 0) + ((amount == undefined) ? 1 : amount);
     object.image_index %= object.images.length;
     if (object.image_index < 0) {
 	object.image_index += object.images.length;
@@ -375,8 +375,8 @@ function makeDraggable(item) {
 }
 
 function randomLocation() {
-    return {x:parseInt(Math.random() * (window.innerWidth - 100) + 50),
-	    y:parseInt(Math.random() * (window.innerHeight - 100) + 50)};
+    return {x:parseInt(Math.random() * (window.innerWidth - 200) + 100),
+	    y:parseInt(Math.random() * (window.innerHeight - 200) + 100)};
 }
 
 function throwRandomly(object) {
