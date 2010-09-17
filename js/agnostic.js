@@ -227,6 +227,7 @@ function dragMoveAndRotate(object, event) {
     result.offset = rotateVector(getRelative(getObjectCenter(object), 
                                              mouseCoords(event)),
 				    -degreesToRadians(object.currentRotation || 0));
+    result.lastPos = mouseCoords(event);
     result.move = function (mousePos) {
 	if (Math.abs(this.offset.x) < this.object.width / 4
 	        && Math.abs(this.offset.y) < this.object.height / 4) {//move only
@@ -275,6 +276,7 @@ function dragMoveAndRotate(object, event) {
 	        this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
 	    }
 	  }
+	  this.lastPos = mousePos;
       return false;
     }
     result.drop = function () {
