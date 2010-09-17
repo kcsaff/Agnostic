@@ -264,12 +264,12 @@ function dragMoveAndRotate(object, event) {
 	    var oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
 	    var amount = distance(oldCenter, mousePos) / vectorLength(this.offset);
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
-	    if (amount >= 1) {
+	    if (amount >= 0) {
 		    applyAbsoluteRotation(this.object, newRotation - oldRotation);
 		    var newRelativePoint = rotateVector(this.offset, newRotation - oldRotation); 
 		    newCenter = applyRelative(mousePos, vectorMultiply(newRelativePoint, -1.0));
 		    applyAbsoluteCenter(this.object, newCenter);
-	    } else if (amount >= 0.5) {
+	    } else if (true || amount >= 0.5) {
 		//try out flip possibilities.
 		var oldNormal = normalVector(getRelative(oldCenter, 
 							 this.lastPos), this.offset);
@@ -325,8 +325,10 @@ function dragMoveAndRotate(object, event) {
 		if (distance3(oldNormal, altNormal) < distance3(oldNormal, newNormal)) {
 		    this.offset = conjugate(this.offset);
 		    doFlip(this.object);
-		    oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
+		    oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset);
+		    alert("flip!");
 		}
+		newRotation = degreesToRadians(this.object.currentRotation || 0) + oldRotation;
 
 	    	//need a transformation that keeps the center fixed, but takes the 
 	    	// offset point to mousePos along the center-mousePos axis.
@@ -358,7 +360,7 @@ function dragMoveAndRotate(object, event) {
 	    	var transform = "matrix(" + xx + ", " + xy + ", " + yx + ", " + yy + ", 0, 0)";
 	        this.object.style.webkitTransform = transform;
 	        this.object.style.MozTransform = transform; 
-	        this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
+	        //this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
 	    }
 	  }
 	  this.lastPos = mousePos;
