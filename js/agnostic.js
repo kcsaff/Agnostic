@@ -17,6 +17,19 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*function include(filename)
+{
+	var head = document.getElementsByTagName('head')[0];
+	
+	script = document.createElement('script');
+	script.src = filename;
+	script.type = 'text/javascript';
+	
+	head.appendChild(script)
+}
+
+include('sylvester.src.js');*/
+
 document.onmousemove = mouseMove;
 document.onmouseup = mouseUp;
 //document.contextmenu = doNothing;
@@ -28,19 +41,16 @@ function doNothing(ev) {
 
 function mouseCoords(ev) {
 	if (ev.pageX || ev.pageY) {
-		return {x:ev.pageX, y:ev.pageY};
+		return Vector.create([ev.pageX, ev.pageY]);
 	}
-	return {
-		x:ev.clientX + document.body.scrollLeft - document.body.clientLeft,
-		y:ev.clientY + document.body.scrollTop - document.body.clientTop
-	};
+	return Vector.create([ev.clientX + document.body.scrollLeft - document.body.clientLeft,
+	                      ev.clientY + document.body.scrollTop - document.body.clientTop]);
+
 }
 
 function getMouseOffset(target, ev) {
 	ev = ev || window.event;
-	var docPos = getPosition(target);
-	var mousePos = mouseCoords(ev);
-	return {x:mousePos.x - docPos.x, y:mousePos.y - docPos.y};
+	return mouseCoords(ev).subtract(getPosition(target));
 }
 
 function getPosition(e) {
@@ -55,7 +65,7 @@ function getPosition(e) {
 	left += e.offsetLeft;
 	top += e.offsetTop;
 	
-	return {x:left, y:top};
+	return Vector.create([left, top]);
 }
 
 var whichButton = [0, 'left', 'middle', 'right']; //most
@@ -97,94 +107,57 @@ function fixZOrder(array) {
 var draggables = new Array();
 var oneTime = 1;
 
+function getLeft(obj) {
+	return parseInt(obj.style.left);
+}
+
+function getRight(obj) {
+	return parseInt(obj.style.left) + obj.width;
+}
+
+function getTop(obj) {
+	return parseInt(obj.style.top);
+}
+
+function getBottom(obj) {
+	return parseInt(obj.style.top) + obj.height;
+}
+
+function getCenter(obj) {
+    return Vector.create([getLeft(obj) + obj.width / 2, 
+                           getTop(obj) + obj.height / 2])
+}
+
 function isPositionInBox(pos, obj) {
-    pos = rotateAround(getObjectCenter(obj), pos, 
-		       -degreesToRadians(obj.currentRotation))
-    var left = parseInt(obj.style.left);
-    var top = parseInt(obj.style.top);
-    if (pos.x < left) {
+    pos = pos.rotate(-degreesToRadians(obj.currentRotation), getCenter(obj))
+    if (pos.e(1) < getLeft(obj)) {
 	return false;
     }
-    if (pos.x > left + obj.width) {
+    if (pos.e(1) > getRight(obj)) {
 	return false;
     }
-    if (pos.y < top) {
+    if (pos.e(2) < getTop(obj)) {
 	return false;
     }
-    if (pos.y > top + obj.height) {
+    if (pos.e(2) > getBottom(obj)) {
 	return false;
     }
     return true;
 }
 
-function getObjectCenter(obj) {
-	var left = parseInt(obj.style.left);
-	var top = parseInt(obj.style.top);
-	return {x: left + obj.width / 2, y: top + obj.height / 2};
+function getRotation(vector) {//in radians
+	return Math.atan2(vector.e(2), vector.e(1));
 }
 
+//alert("" + getRotation($V([1,0])) + " " + getRotation($V([0,1])) + " " + getRotation($V([-1,0])))
+
 function getAbsoluteRotation(center, point) { //in radians
-    return Math.atan2(point.y  - center.y, point.x  - center.x);
+    return getRotation(point.subtract(center));
 }
 
 function getRelativeRotation(center, first, last) { //in radians
     return getAbsoluteRotation(center, last) - getAbsoluteRotation(center, first);
 }
-
-function getRelative(point1, point2) {
-    return {x:point2.x - point1.x, 
-	    y:point2.y - point1.y};
-}
-
-function applyRelative(point1, point2) {
-    return {x:point2.x + point1.x, 
-	    y:point2.y + point1.y};
-}
-
-function vectorLength(rel) {
-    return Math.sqrt(rel.x * rel.x + rel.y * rel.y);
-}
-
-function vectorMultiply(v, amount) {
-    return {x:v.x * amount,
-	    y:v.y * amount};
-}
-
-function distance(point1, point2) {
-    return vectorLength(getRelative(point1, point2));
-}
-
-function rotateAround(center, point, radians) {
-    if (!radians) return point;
-    return applyRelative(center, rotateVector(getRelative(center, point), radians));
-}
-
-function rotateVector(rel, radians) {
-    return {x:rel.x * Math.cos(radians) - rel.y * Math.sin(radians),
-	    y:rel.x * Math.sin(radians) + rel.y * Math.cos(radians)};
-}
-
-function getRelativePosition(pos, obj) {
-    pos = rotateAround(getObjectCenter(obj), pos, 
-		       -degreesToRadians(obj.currentRotation))
-    var left = parseInt(obj.style.left);
-    var top = parseInt(obj.style.top);
-    var result = "in";
-    var badness = 0;
-    var bad = [left - pos.x, pos.x - (left + obj.width),
-	       top - pos.y, pos.y - (top + obj.height)];
-    var names = ["left", "right", "up", "down"];
-    for (var i=0; i < 4; ++i) {
-        if (bad[i] > badness) {
-	    badness = bad[i];
-	    result = names[i];
-	}
-    }
-    
-    return result;
-}
-
-
 
 function degreesToRadians(deg) {
 	return Math.PI * 2 * deg / 360;
@@ -213,8 +186,8 @@ function dragMove(object, event) {
     result.object.style.position = "absolute";
     result.mouseOffset = getMouseOffset(object, event);
     result.move = function (mousePos) {
-        this.object.style.top = mousePos.y - this.mouseOffset.y;
-        this.object.style.left = mousePos.x - this.mouseOffset.x;
+        this.object.style.top = mousePos.e(2) - this.mouseOffset.e(2);
+        this.object.style.left = mousePos.e(1) - this.mouseOffset.e(1);
         return false;
     }
     return result;
@@ -224,23 +197,23 @@ function dragMoveAndRotate(object, event) {
     result = {};
     result.object = object;
     result.object.style.position = "absolute";
-    result.offset = rotateVector(getRelative(getObjectCenter(object), 
-                                             mouseCoords(event)),
-				    -degreesToRadians(object.currentRotation || 0));
+    result.offset = mouseCoords(event).rotate(-degreesToRadians(object.currentRotation || 0),
+    											getCenter(object)).subtract(getCenter(object));
     result.lastPos = mouseCoords(event);
     result.move = function (mousePos) {
-	if (Math.abs(this.offset.x) < this.object.width / 4
-	        && Math.abs(this.offset.y) < this.object.height / 4) {//move only
-	    applyRelativePosition(this.object, getRelative(this.lastPos, mousePos));
+	if (Math.abs(this.offset.e(1)) < this.object.width / 4
+	        && Math.abs(this.offset.e(2)) < this.object.height / 4) {//move only
+	    applyRelativePosition(this.object, mousePos.subtract(this.lastPos));
 	} else {
-	    var oldCenter = getObjectCenter(this.object);
-    	var oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
-    	var amount = distance(oldCenter, mousePos) / vectorLength(this.offset);
+	    var oldCenter = getCenter(this.object);
+    	var oldRotation = getAbsoluteRotation(Vector.Zero(2), this.offset)
+    	var amount = mousePos.distanceFrom(oldCenter) / this.offset.modulus();
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
-	    if (amount >= 1) {
+	    if (true || amount >= 1) {
 		    applyAbsoluteRotation(this.object, newRotation - oldRotation);
-		    var newRelativePoint = rotateVector(this.offset, newRotation - oldRotation); 
-		    newCenter = applyRelative(mousePos, vectorMultiply(newRelativePoint, -1.0));
+		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation,
+		    										   Vector.Zero(2)); 
+		    newCenter = mousePos.subtract(newRelativePoint);
 		    applyAbsoluteCenter(this.object, newCenter);
 	    } else {
 	    	//need a transformation that keeps the center fixed, but takes the 
@@ -333,15 +306,15 @@ function applyRelativeRotation(object, radians) {
 }
 
 function applyAbsoluteCenter(object, point) {
-    object.style.left = point.x - object.width / 2;
-    object.style.top = point.y - object.height / 2; 
+    object.style.left = point.e(1) - object.width / 2;
+    object.style.top = point.e(2) - object.height / 2; 
 }
 
 function applyRelativePosition(object, vector) {
     var left = parseInt(object.style.left);
     var top = parseInt(object.style.top);
-    object.style.left = left + vector.x;
-    object.style.top = top + vector.y;
+    object.style.left = left + vector.e(1);
+    object.style.top = top + vector.e(2);
 }
 
 function dragArbitraryRotate(object, event) {
@@ -351,11 +324,11 @@ function dragArbitraryRotate(object, event) {
     result.mouseFirstPos = mouseCoords(event);
     result.firstRotation = object.currentRotation || 0;
     result.move = function (mousePos) {
-        newRotation = getRelativeRotation(getObjectCenter(this.object),
+        newRotation = getRelativeRotation(getCenter(this.object),
                                           this.mouseFirstPos,
                                           mousePos);
-	applyAbsoluteRotation(this.object, newRotation, this.firstRotation);
-	snapRotation(this.object, 90, 10);
+        applyAbsoluteRotation(this.object, newRotation, this.firstRotation);
+        //snapRotation(this.object, 90, 10);
         return false;
     }
     return result;
@@ -389,7 +362,10 @@ function makeDraggable(item) {
 		} 
 		else if (getButton(ev) == 'left') {
 			betterAction = dragMoveAndRotate(this, ev);
-		} 
+		} else {
+			alert("" + getCenter(this).e(1) + " " + getCenter(this).e(2))
+			//alert("" + mouseCoords(ev).e(1) + " " + mouseCoords(ev).e(2));
+		}
 		if (betterAction) {
 		    if (moveToEnd(draggables, this)) {
 			fixZOrder(draggables);
@@ -402,8 +378,8 @@ function makeDraggable(item) {
 }
 
 function randomLocation() {
-    return {x:parseInt(Math.random() * (window.innerWidth - 200) + 100),
-	    y:parseInt(Math.random() * (window.innerHeight - 200) + 100)};
+    return Vector.create([parseInt(Math.random() * (window.innerWidth - 200) + 100),
+                          parseInt(Math.random() * (window.innerHeight - 200) + 100)]);
 }
 
 function throwRandomly(object) {
