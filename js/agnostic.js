@@ -227,8 +227,8 @@ function dragMoveAndRotate(object, event) {
     result.mouseOffset = getMouseOffset(object, event);
     result.lastPos = mouseCoords(event);
     result.offset = rotateVector(getRelative(getObjectCenter(object), 
-					     mouseCoords(event)),
-				 -degreesToRadians(object.currentRotation || 0));
+                                             mouseCoords(event)),
+				    -degreesToRadians(object.currentRotation || 0));
     result.move = function (mousePos) {
 	if (mousePos.x == this.lastPos.x && mousePos.y == this.lastPos.y) {
 	    return false;
@@ -236,21 +236,58 @@ function dragMoveAndRotate(object, event) {
 	if (Math.abs(this.offset.x) < this.object.width / 4
 	    && Math.abs(this.offset.y) < this.object.height / 4) {//move only
 	    applyRelativePosition(this.object, getRelative(this.lastPos, mousePos));
-	}
-	else {
+	} else {
 	    var oldCenter = getObjectCenter(this.object);
-	    var newRotation = getRelativeRotation(oldCenter, this.lastPos, mousePos);
-	    applyRelativeRotation(this.object, newRotation);
-	    var newRelativePoint = rotateVector(this.offset, 
-						degreesToRadians(this.object.currentRotation || 0)); 
-	    newCenter = applyRelative(mousePos, vectorMultiply(newRelativePoint, -1.0));
-	    applyAbsoluteCenter(this.object, newCenter);
+	    if (distance(oldCenter, mousePos) >= vectorLength(this.offset)) {
+		    var newRotation = getRelativeRotation(oldCenter, this.lastPos, mousePos);
+		    applyRelativeRotation(this.object, newRotation);
+		    var newRelativePoint = rotateVector(this.offset, 
+							degreesToRadians(this.object.currentRotation || 0)); 
+		    newCenter = applyRelative(mousePos, vectorMultiply(newRelativePoint, -1.0));
+		    applyAbsoluteCenter(this.object, newCenter);
+	    } else {
+	    	//need a transformation that keeps the center fixed, but takes the 
+	    	// offset point to mousePos along the center-mousePos axis.
+	    	var oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
+	    	//after applying this rotation, offset will be pointing right. x+
+	    	// so compress the x direction
+	    	var amount = distance(oldCenter, mousePos) 
+	    				  / vectorLength(this.offset);
+	    	//then rotate to current rotation.
+	    	var newRotation = getAbsoluteRotation(oldCenter, mousePos);
+
+	    	//Again: first put offset on x axis
+	    	var xx1 = Math.cos(-oldRotation);
+	    	var yx1 = -Math.sin(-oldRotation);
+	    	var xy1 = -yx1;
+	    	var yy1 = xx1;
+
+	    	//Then: compress x axis.
+	    	xx1 *= amount;
+	    	yx1 *= amount;
+
+	    	//Finally: rotate to current position.
+	    	var xx2 = Math.cos(newRotation);
+	    	var yx2 = -Math.sin(newRotation);
+	    	var xy2 = -yx2;
+	    	var yy2 = xx2;
+	    	
+	    	var xx = xx1 * xx2 + xy1 * yx2;
+	    	var yx = yx1 * xx2 + yy1 * yx2;
+	    	var xy = xx1 * xy2 + xy1 * yy2;
+	    	var yy = yy1 * yy2 + yx1 * xy2;
+	    	
+	    	var transform = "matrix(" + xx + ", " + xy + ", " + yx + ", " + yy + ", 0, 0)";
+	        this.object.style.webkitTransform = transform;
+	        this.object.style.MozTransform = transform; 
+	        this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
+	    }
 	}
 	this.lastPos = mousePos;
         return false;
     }
     result.drop = function () {
-	snapRotation(this.object, 90, 12);
+	    snapRotation(this.object, 90, 12);
     }
     return result;
 }
@@ -344,7 +381,7 @@ function mouseDown(ev) {
 
 function mouseUp() {
     if (betterAction && betterAction.drop) {
-	betterAction.drop();
+	   betterAction.drop();
     }
     betterAction = null;
     return false;
