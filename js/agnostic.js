@@ -136,6 +136,12 @@ function getRelative(point1, point2) {
 	    y:point2.y - point1.y};
 }
 
+function getRelative3(point1, point2) {
+    return {x:point2.x - point1.x, 
+	    y:point2.y - point1.y,
+	    z:point2.z - point1.z};
+}
+
 function applyRelative(point1, point2) {
     return {x:point2.x + point1.x, 
 	    y:point2.y + point1.y};
@@ -145,6 +151,10 @@ function vectorLength(rel) {
     return Math.sqrt(rel.x * rel.x + rel.y * rel.y);
 }
 
+function vectorLength3(rel) {
+    return Math.sqrt(rel.x * rel.x + rel.y * rel.y + rel.z * rel.z);
+}
+
 function vectorMultiply(v, amount) {
     return {x:v.x * amount,
 	    y:v.y * amount};
@@ -152,6 +162,10 @@ function vectorMultiply(v, amount) {
 
 function distance(point1, point2) {
     return vectorLength(getRelative(point1, point2));
+}
+
+function distance3(point1, point2) {
+    return vectorLength3(getRelative3(point1, point2));
 }
 
 function rotateAround(center, point, radians) {
@@ -184,7 +198,20 @@ function getRelativePosition(pos, obj) {
     return result;
 }
 
+function normalVector(newRel, oldRel) {
+    var newLength = vectorLength(newRel);
+    var oldLength = vectorLength(oldRel);
+    var relLength = newLength / oldLength;
+    if (relLength == 0) {
+	return {x: -oldRel.x / oldLength, y: -oldRel.y / oldLength, z: 0};
+    }
+    var relHeight = Math.sqrt(1 - relLength * relLength);
+    return {x: -newRel.x * relHeight / relLength, y: -newRel.y * relHeight / relLength, z: relLength};
+}
 
+function conjugate(vec) {
+    return {x: -vec.x, y: vec.y};
+}
 
 function degreesToRadians(deg) {
 	return Math.PI * 2 * deg / 360;
@@ -234,15 +261,73 @@ function dragMoveAndRotate(object, event) {
 	    applyRelativePosition(this.object, getRelative(this.lastPos, mousePos));
 	} else {
 	    var oldCenter = getObjectCenter(this.object);
-    	var oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
-    	var amount = distance(oldCenter, mousePos) / vectorLength(this.offset);
+	    var oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
+	    var amount = distance(oldCenter, mousePos) / vectorLength(this.offset);
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
 	    if (amount >= 1) {
 		    applyAbsoluteRotation(this.object, newRotation - oldRotation);
 		    var newRelativePoint = rotateVector(this.offset, newRotation - oldRotation); 
 		    newCenter = applyRelative(mousePos, vectorMultiply(newRelativePoint, -1.0));
 		    applyAbsoluteCenter(this.object, newCenter);
+	    } else if (amount >= 0.5) {
+		//try out flip possibilities.
+		var oldNormal = normalVector(getRelative(oldCenter, 
+							 this.lastPos), this.offset);
+		var newNormal = normalVector(getRelative(oldCenter,
+							 mousePos), this.offset);
+		var altNormal = {x: -newNormal.x, y: -newNormal.y, z: -newNormal.z};
+
+		if (distance3(oldNormal, altNormal) < distance3(oldNormal, newNormal)) {
+		    this.offset = conjugate(this.offset);
+		    doFlip(this.object);
+		    oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
+		}
+
+	    	//need a transformation that keeps the center fixed, but takes the 
+	    	// offset point to mousePos along the center-mousePos axis.
+	    	//after applying this rotation, offset will be pointing right. x+
+	    	// so compress the x direction
+	    	//then rotate to current rotation.
+
+	    	//Again: first put offset on x axis
+	    	var xx1 = Math.cos(-oldRotation);
+	    	var yx1 = -Math.sin(-oldRotation);
+	    	var xy1 = -yx1;
+	    	var yy1 = xx1;
+
+	    	//Then: compress x axis.
+	    	xx1 *= amount;
+	    	yx1 *= amount;
+
+	    	//Finally: rotate to current position.
+	    	var xx2 = Math.cos(newRotation);
+	    	var yx2 = -Math.sin(newRotation);
+	    	var xy2 = -yx2;
+	    	var yy2 = xx2;
+	    	
+	    	var xx = xx1 * xx2 + xy1 * yx2;
+	    	var yx = yx1 * xx2 + yy1 * yx2;
+	    	var xy = xx1 * xy2 + xy1 * yy2;
+	    	var yy = yy1 * yy2 + yx1 * xy2;
+	    	
+	    	var transform = "matrix(" + xx + ", " + xy + ", " + yx + ", " + yy + ", 0, 0)";
+	        this.object.style.webkitTransform = transform;
+	        this.object.style.MozTransform = transform; 
+	        this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
 	    } else {
+		//try out flip possibilities.
+		var oldNormal = normalVector(getRelative(oldCenter, 
+							 this.lastPos), this.offset);
+		var newNormal = normalVector(getRelative(oldCenter,
+							 mousePos), this.offset);
+		var altNormal = {x: -newNormal.x, y: -newNormal.y, z: -newNormal.z};
+
+		if (distance3(oldNormal, altNormal) < distance3(oldNormal, newNormal)) {
+		    this.offset = conjugate(this.offset);
+		    doFlip(this.object);
+		    oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
+		}
+
 	    	//need a transformation that keeps the center fixed, but takes the 
 	    	// offset point to mousePos along the center-mousePos axis.
 	    	//after applying this rotation, offset will be pointing right. x+
