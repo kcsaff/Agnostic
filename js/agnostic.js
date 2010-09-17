@@ -224,15 +224,10 @@ function dragMoveAndRotate(object, event) {
     result = {};
     result.object = object;
     result.object.style.position = "absolute";
-    result.mouseOffset = getMouseOffset(object, event);
-    result.lastPos = mouseCoords(event);
     result.offset = rotateVector(getRelative(getObjectCenter(object), 
                                              mouseCoords(event)),
 				    -degreesToRadians(object.currentRotation || 0));
     result.move = function (mousePos) {
-	if (mousePos.x == this.lastPos.x && mousePos.y == this.lastPos.y) {
-	    return false;
-	}
 	if (Math.abs(this.offset.x) < this.object.width / 4
 	        && Math.abs(this.offset.y) < this.object.height / 4) {//move only
 	    applyRelativePosition(this.object, getRelative(this.lastPos, mousePos));
