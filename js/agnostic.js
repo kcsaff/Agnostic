@@ -209,7 +209,7 @@ function dragMoveAndRotate(object, event) {
     	var oldRotation = getAbsoluteRotation(Vector.Zero(2), this.offset)
     	var amount = mousePos.distanceFrom(oldCenter) / this.offset.modulus();
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
-	    if (true || amount >= 1) {
+	    if (amount >= 1) {
 		    applyAbsoluteRotation(this.object, newRotation - oldRotation);
 		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation,
 		    										   Vector.Zero(2)); 
@@ -223,27 +223,13 @@ function dragMoveAndRotate(object, event) {
 	    	//then rotate to current rotation.
 
 	    	//Again: first put offset on x axis
-	    	var xx1 = Math.cos(-oldRotation);
-	    	var yx1 = -Math.sin(-oldRotation);
-	    	var xy1 = -yx1;
-	    	var yy1 = xx1;
-
+	    	var m = Matrix.Rotation(-oldRotation)
 	    	//Then: compress x axis.
-	    	xx1 *= amount;
-	    	yx1 *= amount;
-
+	    	m = Matrix.Diagonal([amount, 1]).multiply(m);
 	    	//Finally: rotate to current position.
-	    	var xx2 = Math.cos(newRotation);
-	    	var yx2 = -Math.sin(newRotation);
-	    	var xy2 = -yx2;
-	    	var yy2 = xx2;
-	    	
-	    	var xx = xx1 * xx2 + xy1 * yx2;
-	    	var yx = yx1 * xx2 + yy1 * yx2;
-	    	var xy = xx1 * xy2 + xy1 * yy2;
-	    	var yy = yy1 * yy2 + yx1 * xy2;
-	    	
-	    	var transform = "matrix(" + xx + ", " + xy + ", " + yx + ", " + yy + ", 0, 0)";
+	    	m = Matrix.Rotation(newRotation).multiply(m);
+
+	    	var transform = "matrix(" + m.e(1,1) + ", " + m.e(2,1) + ", " + m.e(1,2) + ", " + m.e(2,2) + ", 0, 0)";
 	        this.object.style.webkitTransform = transform;
 	        this.object.style.MozTransform = transform; 
 	        this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
