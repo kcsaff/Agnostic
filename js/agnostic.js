@@ -234,27 +234,24 @@ function dragMoveAndRotate(object, event) {
 	    return false;
 	}
 	if (Math.abs(this.offset.x) < this.object.width / 4
-	    && Math.abs(this.offset.y) < this.object.height / 4) {//move only
+	        && Math.abs(this.offset.y) < this.object.height / 4) {//move only
 	    applyRelativePosition(this.object, getRelative(this.lastPos, mousePos));
 	} else {
 	    var oldCenter = getObjectCenter(this.object);
-	    if (distance(oldCenter, mousePos) >= vectorLength(this.offset)) {
-		    var newRotation = getRelativeRotation(oldCenter, this.lastPos, mousePos);
-		    applyRelativeRotation(this.object, newRotation);
-		    var newRelativePoint = rotateVector(this.offset, 
-							degreesToRadians(this.object.currentRotation || 0)); 
+    	var oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
+    	var amount = distance(oldCenter, mousePos) / vectorLength(this.offset);
+	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
+	    if (amount >= 1) {
+		    applyAbsoluteRotation(this.object, newRotation - oldRotation);
+		    var newRelativePoint = rotateVector(this.offset, newRotation - oldRotation); 
 		    newCenter = applyRelative(mousePos, vectorMultiply(newRelativePoint, -1.0));
 		    applyAbsoluteCenter(this.object, newCenter);
 	    } else {
 	    	//need a transformation that keeps the center fixed, but takes the 
 	    	// offset point to mousePos along the center-mousePos axis.
-	    	var oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
 	    	//after applying this rotation, offset will be pointing right. x+
 	    	// so compress the x direction
-	    	var amount = distance(oldCenter, mousePos) 
-	    				  / vectorLength(this.offset);
 	    	//then rotate to current rotation.
-	    	var newRotation = getAbsoluteRotation(oldCenter, mousePos);
 
 	    	//Again: first put offset on x axis
 	    	var xx1 = Math.cos(-oldRotation);
@@ -282,9 +279,8 @@ function dragMoveAndRotate(object, event) {
 	        this.object.style.MozTransform = transform; 
 	        this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
 	    }
-	}
-	this.lastPos = mousePos;
-        return false;
+	  }
+      return false;
     }
     result.drop = function () {
 	    snapRotation(this.object, 90, 12);
