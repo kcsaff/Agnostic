@@ -34,6 +34,36 @@ document.onmousemove = mouseMove;
 document.onmouseup = mouseUp;
 //document.contextmenu = doNothing;
 
+function agnosticImage(image) {
+	image.getLeft = function() {
+		return parseInt(this.style.left);
+	}
+	image.getRight = function() {
+		return parseInt(this.style.left) + this.width;
+	}
+	image.getTop = function() {
+		return parseInt(this.style.top);
+	}
+	image.getBottom = function() {
+		return parseInt(this.style.top) + this.height;
+	}
+	image.getCenter = function() {
+		return Vector.create([this.getLeft() + this.width / 2, 
+                               this.getTop() + this.height / 2])
+	}
+	image.contains = function(vector) {
+		vector = vector.rotate(-degreesToRadians(this.currentRotation || 0), 
+							   this.getCenter());
+		return !( vector.e(1) < this.getLeft()
+				|| vector.e(1) > this.getRight()
+				|| vector.e(2) < this.getTop()
+				|| vector.e(2) > this.getBottom());
+	}
+	
+	return image
+}
+
+
 var betterAction = null;
 
 function doNothing(ev) {
@@ -107,44 +137,6 @@ function fixZOrder(array) {
 var draggables = new Array();
 var oneTime = 1;
 
-function getLeft(obj) {
-	return parseInt(obj.style.left);
-}
-
-function getRight(obj) {
-	return parseInt(obj.style.left) + obj.width;
-}
-
-function getTop(obj) {
-	return parseInt(obj.style.top);
-}
-
-function getBottom(obj) {
-	return parseInt(obj.style.top) + obj.height;
-}
-
-function getCenter(obj) {
-    return Vector.create([getLeft(obj) + obj.width / 2, 
-                           getTop(obj) + obj.height / 2])
-}
-
-function isPositionInBox(pos, obj) {
-    pos = pos.rotate(-degreesToRadians(obj.currentRotation), getCenter(obj))
-    if (pos.e(1) < getLeft(obj)) {
-	return false;
-    }
-    if (pos.e(1) > getRight(obj)) {
-	return false;
-    }
-    if (pos.e(2) < getTop(obj)) {
-	return false;
-    }
-    if (pos.e(2) > getBottom(obj)) {
-	return false;
-    }
-    return true;
-}
-
 function getRotation(vector) {//in radians
 	return Math.atan2(vector.e(2), vector.e(1));
 }
@@ -198,14 +190,14 @@ function dragMoveAndRotate(object, event) {
     result.object = object;
     result.object.style.position = "absolute";
     result.offset = mouseCoords(event).rotate(-degreesToRadians(object.currentRotation || 0),
-    											getCenter(object)).subtract(getCenter(object));
+    											object.getCenter()).subtract(object.getCenter());
     result.lastPos = mouseCoords(event);
     result.move = function (mousePos) {
 	if (Math.abs(this.offset.e(1)) < this.object.width / 4
 	        && Math.abs(this.offset.e(2)) < this.object.height / 4) {//move only
 	    applyRelativePosition(this.object, mousePos.subtract(this.lastPos));
 	} else {
-	    var oldCenter = getCenter(this.object);
+	    var oldCenter = this.object.getCenter();
     	var oldRotation = getAbsoluteRotation(Vector.Zero(2), this.offset)
     	var amount = mousePos.distanceFrom(oldCenter) / this.offset.modulus();
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
@@ -260,12 +252,12 @@ function dragFlip(object, event) {
     result.object.image_index = result.object.image_index || 0;
     result.flipped = false;
     result.move = function (mousePos) {
-        var shouldFlip = !isPositionInBox(mousePos, this.object);
+        var shouldFlip = !this.object.contains(mousePos);
         if (shouldFlip && !this.flipped && this.object.images) {
             doFlip(this.object, +1);
 	    this.flipped = true;
         }
-        else if (false && !shouldFlip && this.flipped && this.object.images) {
+        else if (!shouldFlip && this.flipped && this.object.images) {
             doFlip(this.object, -1);
 	    this.flipped = false;
         }
@@ -310,7 +302,7 @@ function dragArbitraryRotate(object, event) {
     result.mouseFirstPos = mouseCoords(event);
     result.firstRotation = object.currentRotation || 0;
     result.move = function (mousePos) {
-        newRotation = getRelativeRotation(getCenter(this.object),
+        newRotation = getRelativeRotation(this.object.getCenter(),
                                           this.mouseFirstPos,
                                           mousePos);
         applyAbsoluteRotation(this.object, newRotation, this.firstRotation);
@@ -349,7 +341,7 @@ function makeDraggable(item) {
 		else if (getButton(ev) == 'left') {
 			betterAction = dragMoveAndRotate(this, ev);
 		} else {
-			alert("" + getCenter(this).e(1) + " " + getCenter(this).e(2))
+			alert("" + this.getCenter().e(1) + " " + this.getCenter().e(2))
 			//alert("" + mouseCoords(ev).e(1) + " " + mouseCoords(ev).e(2));
 		}
 		if (betterAction) {
@@ -382,10 +374,11 @@ function createCard(front, back) {
     card.style.top = 100;
     card.style.left = 100;
     card.style.zIndex = 1;
+    card = agnosticImage(card);
     card.baseZ = 0;
     throwRandomly(card);
     if (Math.random() < 0.33) {
-	doFlip(card, 1);
+    	doFlip(card, 1);
     }
     document.getElementById("cards").appendChild(card);
     return card;
@@ -409,6 +402,7 @@ function createPyramid(src, size) {
       }*/
     };
     //pyramid.width *= size;
+    pyramid = agnosticImage(pyramid);
     pyramid.baseZ = 200;
     throwRandomly(pyramid);
     document.getElementById("cards").appendChild(pyramid);
