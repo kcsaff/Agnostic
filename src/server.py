@@ -6,7 +6,7 @@ import re
 import cgi
 import traceback, sys
 
-class TOZ(object):
+class RSBP(object):
     SEP = '..'
     objects = {}
     transactions = []
@@ -15,52 +15,28 @@ class TOZ(object):
     def __init__(self):
         self.lock = threading.RLock()
 
-    def _decode(self, value):
-        if value == '':
-            return None
-        else:
-            return int(value)
-
-    def parse(self, data):
-        result = []
-        data = data.split(TOZ.SEP)
-        for datum in data[1:]:
-            transaction, object_, payload = re.match('t([0-9]*)o([0-9])*z(.*)', datum).groups()
-            result.append((self._decode(transaction), 
-                           self._decode(object_), 
-                           payload))
-        return result
-
     def next_transaction(self):
         return self.transaction_offset + len(self.transactions)
-
-    def get_transaction(self, which):
-        return self.transactions[which - self.transaction_offset];
 
     def handle(self, data):
         print data
         with self.lock:
             transaction_request = None
-            for transaction, object_, payload in self.parse(data):
-                print transaction, object_, payload
-                if transaction is not None:
-                    transaction_request = max(transaction_request, transaction)
-                if object_ is not None:
-                    datum = '%st%do%dz%s' % (TOZ.SEP, self.next_transaction(), object_, payload)
-                    self.objects[object_] = (self.next_transaction(), datum)
-                    self.transactions.append(datum)
-
-                if transaction is not None:
-                    transaction_request = max(transaction_request, transaction)
-
-            if transaction_request is None:
-                return 'okthnx'
-            elif self.transaction_offset <= transaction <= self.next_transaction():
-                return ''.join(self.transactions[transaction - self.transaction_offset:])
+            for item in data.split(RSBP.SEP)[1:]:
+                if item.startswith('o'):
+                    name, payload = item[1:].split('-', 1)
+                    store = '%st%do%s-%s' % (RSBP.SEP, self.next_transaction(), name, payload)
+                    self.objects[name] = (self.next_transaction(), store)
+                    self.transactions.append(store)
+                elif item.startswith('t'):
+                    request = int(item[1:])
+                    return ''.join(self.transactions[request + 1 - self.transaction_offset:])
+                elif item.startswith('r'):
+                    objects = sorted([v for v in self.objects.values()])
+                    return ''.join([stored for i, stored in objects]) 
             else:
-                transactions = sorted([i for i in self.objects.values()])
-                print transactions
-                return ''.join([value for key, value in transactions])
+                return ''
+
 
 class FileNotFound(object):
     pass
@@ -74,7 +50,7 @@ class Server(BaseHTTPRequestHandler):
              '.js': 'text/javascript',
              '.png': 'image/png',
              }
-    toz = TOZ()
+    rsbp=RSBP()
 
     def do_GET(self):
         try:
@@ -97,7 +73,7 @@ class Server(BaseHTTPRequestHandler):
         try:
             length = cgi.parse_header(self.headers.getheader('content-length'))
             #print length[0]
-            result = self.toz.handle(self.rfile.read(int(length[0])))
+            result = self.rsbp.handle(self.rfile.read(int(length[0])))
             self.send_response(200)
             self.send_header('Content-type', 'application/x-www-form-urlencoded')
             self.end_headers()
@@ -111,8 +87,8 @@ class Server(BaseHTTPRequestHandler):
 def main():
     server = HTTPServer(('', 8080), Server)
     try:
-        print Server.toz.handle('comment..t0o5zHello,..t0o7zWorld')
-        print Server.toz.handle('comment..t1o6zHello,..t2o7zWorld')
+        print Server.rsbp.handle('comment..o5-Hello,..o7-World..r')
+        print Server.rsbp.handle('comment..o7-Monkey..o345-Dog..o7-chicken..t2')
         server.serve_forever()
     finally:
         server.socket.close()
