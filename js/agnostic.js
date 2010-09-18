@@ -52,7 +52,7 @@ function agnosticImage(image) {
                                this.getTop() + this.height / 2])
 	}
 	image.contains = function(vector) {
-		vector = vector.rotate(-degreesToRadians(this.currentRotation || 0), 
+		vector = vector.rotate(-this.getRotation(), 
 							   this.getCenter());
 		return !( vector.e(1) < this.getLeft()
 				|| vector.e(1) > this.getRight()
@@ -73,6 +73,9 @@ function agnosticImage(image) {
 		var transform = "rotate(" + this.currentRotation + "deg)";
 	    this.style.webkitTransform = transform;
 	    this.style.MozTransform = transform;
+	}
+	image.getRotation = function() {
+		return degreesToRadians(this.currentRotation || 0);
 	}
 	image.rotate = function(radians) {
 		this.setRotation(radians, this.currentRotation || 0);
@@ -209,8 +212,8 @@ function dragMoveAndRotate(object, event) {
     result = {};
     result.object = object;
     result.object.style.position = "absolute";
-    result.offset = mouseCoords(event).rotate(-degreesToRadians(object.currentRotation || 0),
-    											object.getCenter()).subtract(object.getCenter());
+    result.offset = mouseCoords(event).rotate(-object.getRotation(), 
+    		                                   object.getCenter()).subtract(object.getCenter());
     result.lastPos = mouseCoords(event);
     result.move = function (mousePos) {
 	if (Math.abs(this.offset.e(1)) < this.object.width / 4
@@ -241,10 +244,10 @@ function dragMoveAndRotate(object, event) {
 	    	//Finally: rotate to current position.
 	    	m = Matrix.Rotation(newRotation).multiply(m);
 
+	        this.object.setRotation(newRotation - oldRotation);
 	    	var transform = "matrix(" + m.e(1,1) + ", " + m.e(2,1) + ", " + m.e(1,2) + ", " + m.e(2,2) + ", 0, 0)";
 	        this.object.style.webkitTransform = transform;
 	        this.object.style.MozTransform = transform; 
-	        this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
 	    }
 	  }
 	  this.lastPos = mousePos;
