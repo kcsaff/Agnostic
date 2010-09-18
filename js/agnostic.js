@@ -83,6 +83,14 @@ function agnosticImage(image) {
 	image.move = function(vector) {
 		this.recenter(this.getCenter().add(vector));
 	}
+	image.flip = function(amount) {
+	    this.image_index = (this.image_index || 0) + ((amount == undefined) ? 1 : amount);
+	    this.image_index %= this.images.length;
+	    if (this.image_index < 0) {
+	    	this.image_index += this.images.length;
+	    }
+	    this.src = this.images[this.image_index];
+	}
 	return image
 }
 
@@ -195,19 +203,6 @@ function snapDegrees(deg, increment, closeness) {
     return deg % 360;
 }
 
-function dragMove(object, event) {
-    result = {};
-    result.object = object;
-    result.object.style.position = "absolute";
-    result.mouseOffset = getMouseOffset(object, event);
-    result.move = function (mousePos) {
-        this.object.style.top = mousePos.e(2) - this.mouseOffset.e(2);
-        this.object.style.left = mousePos.e(1) - this.mouseOffset.e(1);
-        return false;
-    }
-    return result;
-}
-
 function dragMoveAndRotate(object, event) {
     result = {};
     result.object = object;
@@ -259,14 +254,6 @@ function dragMoveAndRotate(object, event) {
     return result;
 }
 
-function doFlip(object, amount) {
-    object.image_index = (object.image_index || 0) + ((amount == undefined) ? 1 : amount);
-    object.image_index %= object.images.length;
-    if (object.image_index < 0) {
-	object.image_index += object.images.length;
-    }
-    object.src = object.images[object.image_index];
-}
 
 function dragFlip(object, event) {
     result = {};
@@ -277,11 +264,11 @@ function dragFlip(object, event) {
     result.move = function (mousePos) {
         var shouldFlip = !this.object.contains(mousePos);
         if (shouldFlip && !this.flipped && this.object.images) {
-            doFlip(this.object, +1);
+            this.object.flip(+1);
 	    this.flipped = true;
         }
-        else if (!shouldFlip && this.flipped && this.object.images) {
-            doFlip(this.object, -1);
+        else if (false && !shouldFlip && this.flipped && this.object.images) {
+            this.object.flip(-1);
 	    this.flipped = false;
         }
         return false; 
@@ -372,7 +359,7 @@ function createCard(front, back) {
     card.baseZ = 0;
     card.throwRandomly();
     if (Math.random() < 0.33) {
-    	doFlip(card, 1);
+    	card.flip();
     }
     document.getElementById("cards").appendChild(card);
     return card;
