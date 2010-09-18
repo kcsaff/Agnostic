@@ -34,25 +34,36 @@ document.onmousemove = mouseMove;
 document.onmouseup = mouseUp;
 //document.contextmenu = doNothing;
 
-var draggables = new Array();
-var oneTime = 1;
+var objectsByOrder = new Array();
+var objectsByName = new Object();
 
 function agnosticRSBP() {
     rsbp = new Object();
-    rsbp.next_transaction = 0;
-    rsbp.receive = function(data) {
-	alert(data);
+    rsbp.last_transaction = 0;
+    rsbp.loop = false;
+    rsbp.data = new Object();
+    rsbp.apply = function(data) {
+	//alert(data);
+    }
+    rsbp.generate = function() {
+	return "";
     }
     rsbp.write = function(data) {
-	//alert("writing");
 	var http = new XMLHttpRequest();
 	http.open("POST", "RSBP", true);
 	http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	http.setRequestHeader("Content-length", data.length);
 	http.setRequestHeader("Connection", "close");
 	http.onreadystatechange = function() {
-	    if (http.readyState == 4 && http.status == 200) {
-		alert("yes: " + http.responseText);
+	    if (http.readyState == 4) {
+		if (http.status == 200) {
+		    rsbp.apply(http.responseText);
+		} else if (!this.loop) {
+		    rsbp.write(data);
+		}
+		if (rsbp.loop) {
+		    rsbp.poll_forever();
+		}
 	    } 
 	}
 	http.send(data);
@@ -60,6 +71,10 @@ function agnosticRSBP() {
     }
     rsbp.request_all = function() {
 	return;
+    }
+    rsbp.poll_forever = function() {
+	rsbp.loop = true;
+	this.write(this.generate());
     }
     return rsbp;
 }
@@ -390,14 +405,15 @@ function makeDraggable(item) {
 			//alert("" + mouseCoords(ev).e(1) + " " + mouseCoords(ev).e(2));
 		}
 		if (betterAction) {
-		    if (moveToEnd(draggables, this)) {
-			fixZOrder(draggables);
+		    if (moveToEnd(objectsByOrder, this)) {
+			fixZOrder(objectsByOrder);
 		    }
 		    mouseMove(ev);
 		}
 		return false;
 	}
-	draggables.push(item);
+	//objectsByOrder.push(item);
+	//objectsByName[item.name] = item;
 }
 
 function randomLocation() {
@@ -405,7 +421,18 @@ function randomLocation() {
                           parseInt(Math.random() * (window.innerHeight - 200) + 100)]);
 }
 
-function createCard(front, back) {
+var _next_id = 1;
+function get_next_id() {
+    return "i" + _next_id++;
+}
+
+function registerObject(name, obj) {
+    obj.name = name;
+    objectsByOrder.push(obj);
+    objectsByName[obj.name] = obj;
+}
+
+function createCard(front, back, id) {
     card = document.createElement("img");
     card.src = front;
     card.images = [front, back];
@@ -416,6 +443,7 @@ function createCard(front, back) {
     card.style.zIndex = 1;
     card = agnosticImage(card);
     card.baseZ = 0;
+    registerObject(id || get_next_id(), card);
     card.throwRandomly();
     if (Math.random() < 0.33) {
     	card.flip();
@@ -424,7 +452,7 @@ function createCard(front, back) {
     return card;
 }
 
-function createPyramid(src, size) {
+function createPyramid(src, size, id) {
     pyramid = document.createElement("img");
     pyramid.src = src;
     pyramid.images = [src];
@@ -444,6 +472,7 @@ function createPyramid(src, size) {
     //pyramid.width *= size;
     pyramid = agnosticImage(pyramid);
     pyramid.baseZ = 200;
+    registerObject(id || get_next_id(), pyramid);
     pyramid.throwRandomly();
     document.getElementById("cards").appendChild(pyramid);
     return pyramid;
