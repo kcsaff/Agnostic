@@ -3,8 +3,11 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import os.path
 import threading
 import re
+import cgi
+import traceback, sys
 
 class TOZ(object):
+    SEP = '..'
     objects = {}
     transactions = []
     transaction_offset = 1
@@ -20,7 +23,7 @@ class TOZ(object):
 
     def parse(self, data):
         result = []
-        data = data.split('..')
+        data = data.split(TOZ.SEP)
         for datum in data[1:]:
             transaction, object_, payload = re.match('t([0-9]*)o([0-9])*z(.*)', datum).groups()
             result.append((self._decode(transaction), 
@@ -31,26 +34,32 @@ class TOZ(object):
     def next_transaction(self):
         return self.transaction_offset + len(self.transactions)
 
+    def get_transaction(self, which):
+        return self.transactions[which - self.transaction_offset];
+
     def handle(self, data):
+        print data
         with self.lock:
-            result = []
             transaction_request = None
             for transaction, object_, payload in self.parse(data):
+                print transaction, object_, payload
+                if transaction is not None:
+                    transaction_request = max(transaction_request, transaction)
                 if object_ is not None:
-                    datum = '--t%do%dz%s' % (self.next_transaction(), object_, payload)
+                    datum = '%st%do%dz%s' % (TOZ.SEP, self.next_transaction(), object_, payload)
+                    self.objects[object_] = self.next_transaction()
                     self.transactions.append(datum)
-                    self.objects[object_] = datum
 
                 if transaction is not None:
                     transaction_request = max(transaction_request, transaction)
 
-            if transaction_request is not None:
-                if self.transaction_offset <= transaction <= self.next_transaction():
-                    result = self.transactions[transaction - self.transaction_offset:]
-                else:
-                    result = [value for _, value in sorted(self.objects.items())]
-
-            return ''.join(result)
+            if transaction_request is None:
+                return 'okthnx'
+            elif self.transaction_offset <= transaction <= self.next_transaction():
+                return ''.join(self.transactions[transaction - self.transaction_offset:])
+            else:
+                transactions = sorted([(i, self.get_transaction(i)) for i in self.objects.values()])
+                return ''.join([value for _, value in transactions])
 
 class FileNotFound(object):
     pass
@@ -85,12 +94,17 @@ class Server(BaseHTTPRequestHandler):
 
     def do_POST(self):
         try:
-            result = self.toz.handle(self.rfile.read())
-            self.send_response(301)
+            length = cgi.parse_header(self.headers.getheader('content-length'))
+            #print length[0]
+            result = self.toz.handle(self.rfile.read(int(length[0])))
+            self.send_response(200)
+            self.send_header('Content-type', 'application/x-www-form-urlencoded')
             self.end_headers()
             self.wfile.write(result)
                 
         except Exception, e:
+            print e
+            traceback.print_exc(file=sys.stdout)
             pass
 
 def main():

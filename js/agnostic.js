@@ -34,6 +34,36 @@ document.onmousemove = mouseMove;
 document.onmouseup = mouseUp;
 //document.contextmenu = doNothing;
 
+var draggables = new Array();
+var oneTime = 1;
+
+function agnosticToz() {
+    toz = new Object();
+    toz.next_transaction = 0;
+    toz.receive = function(data) {
+	alert(data);
+    }
+    toz.write = function(data) {
+	//alert("writing");
+	var http = new XMLHttpRequest();
+	http.open("POST", "TOZ", true);
+	http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	http.setRequestHeader("Content-length", data.length);
+	http.setRequestHeader("Connection", "close");
+	http.onreadystatechange = function() {
+	    if (http.readyState == 4 && http.status == 200) {
+		alert("yes: " + http.responseText);
+	    } 
+	}
+	http.send(data);
+	//alert("sent");
+    }
+    toz.request_all = function() {
+	return;
+    }
+    return toz;
+}
+
 function agnosticImage(image) {
 	image.getLeft = function() {
 		return parseInt(this.style.left);
@@ -199,9 +229,6 @@ function fixZOrder(array) {
 	array[i].style.zIndex = (array[i].baseZ || 0) + i;
     }
 }
-
-var draggables = new Array();
-var oneTime = 1;
 
 function getRotation(vector) {//in radians
 	return Math.atan2(vector.e(2), vector.e(1));
