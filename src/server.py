@@ -47,7 +47,7 @@ class TOZ(object):
                     transaction_request = max(transaction_request, transaction)
                 if object_ is not None:
                     datum = '%st%do%dz%s' % (TOZ.SEP, self.next_transaction(), object_, payload)
-                    self.objects[object_] = self.next_transaction()
+                    self.objects[object_] = (self.next_transaction(), datum)
                     self.transactions.append(datum)
 
                 if transaction is not None:
@@ -58,8 +58,9 @@ class TOZ(object):
             elif self.transaction_offset <= transaction <= self.next_transaction():
                 return ''.join(self.transactions[transaction - self.transaction_offset:])
             else:
-                transactions = sorted([(i, self.get_transaction(i)) for i in self.objects.values()])
-                return ''.join([value for _, value in transactions])
+                transactions = sorted([i for i in self.objects.values()])
+                print transactions
+                return ''.join([value for key, value in transactions])
 
 class FileNotFound(object):
     pass
