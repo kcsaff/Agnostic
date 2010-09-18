@@ -37,16 +37,16 @@ document.onmouseup = mouseUp;
 var draggables = new Array();
 var oneTime = 1;
 
-function agnosticToz() {
-    toz = new Object();
-    toz.next_transaction = 0;
-    toz.receive = function(data) {
+function agnosticRSBP() {
+    rsbp = new Object();
+    rsbp.next_transaction = 0;
+    rsbp.receive = function(data) {
 	alert(data);
     }
-    toz.write = function(data) {
+    rsbp.write = function(data) {
 	//alert("writing");
 	var http = new XMLHttpRequest();
-	http.open("POST", "TOZ", true);
+	http.open("POST", "RSBP", true);
 	http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	http.setRequestHeader("Content-length", data.length);
 	http.setRequestHeader("Connection", "close");
@@ -58,10 +58,10 @@ function agnosticToz() {
 	http.send(data);
 	//alert("sent");
     }
-    toz.request_all = function() {
+    rsbp.request_all = function() {
 	return;
     }
-    return toz;
+    return rsbp;
 }
 
 function agnosticImage(image) {
