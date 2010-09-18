@@ -52,12 +52,9 @@ function agnosticImage(image) {
                                this.getTop() + this.height / 2])
 	}
 	image.contains = function(vector) {
-		vector = vector.rotate(-this.getRotation(), 
-							   this.getCenter());
-		return !( vector.e(1) < this.getLeft()
-				|| vector.e(1) > this.getRight()
-				|| vector.e(2) < this.getTop()
-				|| vector.e(2) > this.getBottom());
+		vector = this.toLocalCoords(vector);
+		return (Math.abs(vector.e(1)) <= this.width / 2)
+			&& (Math.abs(vector.e(2)) <= this.height / 2);
 	}
 	image.recenter = function(center) {
 	    this.style.left = center.e(1) - this.width / 2;
@@ -73,6 +70,7 @@ function agnosticImage(image) {
 		var transform = "rotate(" + this.currentRotation + "deg)";
 	    this.style.webkitTransform = transform;
 	    this.style.MozTransform = transform;
+	    this.currentTransformation = Matrix.Rotation(degreesToRadians(this.currentRotation));
 	}
 	image.getRotation = function() {
 		return degreesToRadians(this.currentRotation || 0);
@@ -91,6 +89,43 @@ function agnosticImage(image) {
 	    }
 	    this.src = this.images[this.image_index];
 	}
+	image.setTransformation = function(m) {
+    	var transform = "matrix(" + m.e(1,1) + ", " + m.e(2,1) + ", " + m.e(1,2) + ", " + m.e(2,2) + ", 0, 0)";
+        this.style.webkitTransform = transform;
+        this.style.MozTransform = transform; 
+        this.currentTransformation = m;
+	}
+	image.getTransformation = function() {
+		return this.currentTransformation || Matrix.I(2);
+	}
+	image.toLocalCoords = function(globalCoords) {
+		return this.getTransformation().inv().x(globalCoords.subtract(this.getCenter()));
+	}
+	image.toGlobalCoords = function(localCoords) {
+		return this.getTransformation().x(localCoords).add(this.getCenter());
+	}
+	/*image.getCurrent3dOffset = function(offset, pos) {
+		//Get 3D vector representing location of offset with respect to the center
+		// if it is currently at screen position "pos".
+		var oldLength = offset.modulus();
+		var res2d = pos.subtract(this.getCenter());
+		var newLength = res2d.modulus();
+		return Vector.create([res2d.e(1), res2d.e(2), 
+		                      Math.sqrt(oldLength * oldLength - newLength * newLength)]);
+		
+	}
+	image.do3dRotate = function(offset, lastpos, pos, stuck) {
+		//Apply a 3d rotation corresponding to moving the relative point offset
+		// on the object, from the absolute screen location lastpos to pos,
+		// assuming the object is currently stuck at "stuck" (abs. screen location)
+		
+	}
+	image.complexRotate = function(offset, lastpos, pos) {
+		//Transform image so that the part corresponding to offset ends up at
+		// pos.
+		
+	}*/
+	image.normal = Vector.create([0,0,1])
 	return image
 }
 
