@@ -63,7 +63,23 @@ function agnosticImage(image) {
 	    this.style.left = center.e(1) - this.width / 2;
 	    this.style.top = center.e(2) - this.height / 2; 
 	}
-	
+	image.throwRandomly = function() {
+	    this.recenter(randomLocation());
+	    this.setRotation(0, Math.random() * 360);
+	}
+	image.setRotation = function(radians, degrees) {
+		this.currentRotation = cleanupDegrees((degrees || 0) 
+				              + radiansToDegrees(radians));
+		var transform = "rotate(" + this.currentRotation + "deg)";
+	    this.style.webkitTransform = transform;
+	    this.style.MozTransform = transform;
+	}
+	image.rotate = function(radians) {
+		this.setRotation(radians, this.currentRotation || 0);
+	}
+	image.move = function(vector) {
+		this.recenter(this.getCenter().add(vector));
+	}
 	return image
 }
 
@@ -199,14 +215,14 @@ function dragMoveAndRotate(object, event) {
     result.move = function (mousePos) {
 	if (Math.abs(this.offset.e(1)) < this.object.width / 4
 	        && Math.abs(this.offset.e(2)) < this.object.height / 4) {//move only
-	    applyRelativePosition(this.object, mousePos.subtract(this.lastPos));
+	    this.object.move(mousePos.subtract(this.lastPos));
 	} else {
 	    var oldCenter = this.object.getCenter();
     	var oldRotation = getAbsoluteRotation(Vector.Zero(2), this.offset)
     	var amount = mousePos.distanceFrom(oldCenter) / this.offset.modulus();
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
 	    if (amount >= 1) {
-		    applyAbsoluteRotation(this.object, newRotation - oldRotation);
+		    this.object.setRotation(newRotation - oldRotation);
 		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation,
 		    										   Vector.Zero(2)); 
 		    newCenter = mousePos.subtract(newRelativePoint);
@@ -271,27 +287,8 @@ function dragFlip(object, event) {
 }
 
 function snapRotation(object, increment, closeness) {
-    applyAbsoluteRotation(object, 0, snapDegrees(object.currentRotation || 0, 
+    object.setRotation(0, snapDegrees(object.currentRotation || 0, 
 						 increment, closeness));
-}
-
-function applyAbsoluteRotation(object, radians, degrees) {
-    object.currentRotation = cleanupDegrees((degrees || 0) 
-					    + radiansToDegrees(radians));
-    transform = "rotate(" + object.currentRotation + "deg)";
-    object.style.webkitTransform = transform;
-    object.style.MozTransform = transform;
-}
-
-function applyRelativeRotation(object, radians) {
-    applyAbsoluteRotation(object, radians, object.currentRotation || 0);
-}
-
-function applyRelativePosition(object, vector) {
-    var left = parseInt(object.style.left);
-    var top = parseInt(object.style.top);
-    object.style.left = left + vector.e(1);
-    object.style.top = top + vector.e(2);
 }
 
 function dragArbitraryRotate(object, event) {
@@ -304,7 +301,7 @@ function dragArbitraryRotate(object, event) {
         newRotation = getRelativeRotation(this.object.getCenter(),
                                           this.mouseFirstPos,
                                           mousePos);
-        applyAbsoluteRotation(this.object, newRotation, this.firstRotation);
+        this.object.setRotation(newRotation, this.firstRotation);
         //snapRotation(this.object, 90, 10);
         return false;
     }
@@ -359,11 +356,6 @@ function randomLocation() {
                           parseInt(Math.random() * (window.innerHeight - 200) + 100)]);
 }
 
-function throwRandomly(object) {
-    object.recenter(randomLocation());
-    applyAbsoluteRotation(object, 0, Math.random() * 360);
-}
-
 function createCard(front, back) {
     card = document.createElement("img");
     card.src = front;
@@ -375,7 +367,7 @@ function createCard(front, back) {
     card.style.zIndex = 1;
     card = agnosticImage(card);
     card.baseZ = 0;
-    throwRandomly(card);
+    card.throwRandomly();
     if (Math.random() < 0.33) {
     	doFlip(card, 1);
     }
@@ -403,7 +395,7 @@ function createPyramid(src, size) {
     //pyramid.width *= size;
     pyramid = agnosticImage(pyramid);
     pyramid.baseZ = 200;
-    throwRandomly(pyramid);
+    pyramid.throwRandomly();
     document.getElementById("cards").appendChild(pyramid);
     return pyramid;
 }
