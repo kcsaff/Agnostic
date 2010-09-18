@@ -37,16 +37,51 @@ document.onmouseup = mouseUp;
 var objectsByOrder = new Array();
 var objectsByName = new Object();
 
+function handleIncoming(name, data) {
+    if (name[0] == "i") {
+	if (objectsByName[objectName]) {
+	    objectsByName[objectName].incoming(payload);
+	} else {
+	    alert(objectName + " not found!");
+	}
+    }
+    else {
+	alert("Unhandled object: " + name + ", " + data);
+    }
+}
+
 function agnosticRSBP() {
     rsbp = new Object();
-    rsbp.last_transaction = 0;
+    rsbp.last_transaction = null;
     rsbp.loop = false;
     rsbp.data = new Object();
     rsbp.apply = function(data) {
+	var parts = data.split("..");
+	for (var i = 1;/*ignore before first separator*/ i < parts.length; ++i) {
+	    var ds1 = parts[i].split("-", 2);
+	    var meta = ds1[0];
+	    var payload = ds1[1];
+	    var ds2 = meta.slice(1).split("o", 2);
+	    this.last_transaction = ds2[0];
+	    var objectName = ds2[1];
+	    if (objectName) {
+		handleIncoming(objectName, payload);
+	    }
+	}
 	//alert(data);
     }
     rsbp.generate = function() {
-	return "";
+	var result = "";
+	for (var i = 0; i < objectsByOrder.length; ++i) {
+	    if (objectsByOrder[i].outgoing) {
+		result += "..o" + objectsByOrder[i].name + "-" + objectsByOrder[i].outgoing;
+	    }
+	}
+	if (this.last_transaction == null) {
+	    return result + "..r";
+	} else {
+	    return result + "..t" + this.last_transaction;
+	}
     }
     rsbp.write = function(data) {
 	var http = new XMLHttpRequest();
