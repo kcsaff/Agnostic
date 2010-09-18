@@ -6,7 +6,7 @@ import re
 import cgi
 import traceback, sys
 
-class RSBP(object):
+class RSBP(object): #Really Simple Bounce Protocol
     SEP = '..'
     objects = {}
     transactions = []
@@ -21,21 +21,16 @@ class RSBP(object):
     def handle(self, data):
         print data
         with self.lock:
-            transaction_request = None
             for item in data.split(RSBP.SEP)[1:]:
-                if item.startswith('o'):
-                    name, payload = item[1:].split('-', 1)
-                    store = '%st%do%s-%s' % (RSBP.SEP, self.next_transaction(), name, payload)
-                    self.objects[name] = (self.next_transaction(), store)
+                if item.startswith('o'): #stOre Object data
+                    store = '%st%d%s' % (RSBP.SEP, self.next_transaction(), item)
+                    self.objects[item.split('-',1)[0]] = (self.next_transaction(), store)
                     self.transactions.append(store)
-                elif item.startswith('t'):
-                    request = int(item[1:])
-                    return ''.join(self.transactions[request + 1 - self.transaction_offset:])
-                elif item.startswith('r'):
-                    objects = sorted([v for v in self.objects.values()])
-                    return ''.join([stored for i, stored in objects]) 
-            else:
-                return ''
+                elif item.startswith('t'): #requesT TransacTions since lasT received
+                    return ''.join(self.transactions[int(item[1:]) + 1 - self.transaction_offset:])
+                elif item.startswith('r'): #RefResh - Resend all cuRRent object data
+                    return ''.join([stored for i, stored in sorted(self.objects.values())]) 
+            return ''
 
 
 class FileNotFound(object):
@@ -72,7 +67,6 @@ class Server(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             length = cgi.parse_header(self.headers.getheader('content-length'))
-            #print length[0]
             result = self.rsbp.handle(self.rfile.read(int(length[0])))
             self.send_response(200)
             self.send_header('Content-type', 'application/x-www-form-urlencoded')
