@@ -59,6 +59,10 @@ function agnosticImage(image) {
 				|| vector.e(2) < this.getTop()
 				|| vector.e(2) > this.getBottom());
 	}
+	image.recenter = function(center) {
+	    this.style.left = center.e(1) - this.width / 2;
+	    this.style.top = center.e(2) - this.height / 2; 
+	}
 	
 	return image
 }
@@ -206,7 +210,7 @@ function dragMoveAndRotate(object, event) {
 		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation,
 		    										   Vector.Zero(2)); 
 		    newCenter = mousePos.subtract(newRelativePoint);
-		    applyAbsoluteCenter(this.object, newCenter);
+		    this.object.recenter(newCenter);
 	    } else {
 	    	//need a transformation that keeps the center fixed, but takes the 
 	    	// offset point to mousePos along the center-mousePos axis.
@@ -283,11 +287,6 @@ function applyRelativeRotation(object, radians) {
     applyAbsoluteRotation(object, radians, object.currentRotation || 0);
 }
 
-function applyAbsoluteCenter(object, point) {
-    object.style.left = point.e(1) - object.width / 2;
-    object.style.top = point.e(2) - object.height / 2; 
-}
-
 function applyRelativePosition(object, vector) {
     var left = parseInt(object.style.left);
     var top = parseInt(object.style.top);
@@ -361,7 +360,7 @@ function randomLocation() {
 }
 
 function throwRandomly(object) {
-    applyAbsoluteCenter(object, randomLocation());
+    object.recenter(randomLocation());
     applyAbsoluteRotation(object, 0, Math.random() * 360);
 }
 
