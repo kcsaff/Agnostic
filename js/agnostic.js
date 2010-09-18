@@ -242,8 +242,7 @@ function dragMoveAndRotate(object, event) {
     result = {};
     result.object = object;
     result.object.style.position = "absolute";
-    result.offset = mouseCoords(event).rotate(-object.getRotation(), 
-    		                                   object.getCenter()).subtract(object.getCenter());
+    result.offset = object.toLocalCoords(mouseCoords(event));
     result.lastPos = mouseCoords(event);
     result.move = function (mousePos) {
 	if (Math.abs(this.offset.e(1)) < this.object.width / 4
@@ -275,9 +274,7 @@ function dragMoveAndRotate(object, event) {
 	    	m = Matrix.Rotation(newRotation).multiply(m);
 
 	        this.object.setRotation(newRotation - oldRotation);
-	    	var transform = "matrix(" + m.e(1,1) + ", " + m.e(2,1) + ", " + m.e(1,2) + ", " + m.e(2,2) + ", 0, 0)";
-	        this.object.style.webkitTransform = transform;
-	        this.object.style.MozTransform = transform; 
+	        this.object.setTransformation(m);
 	    }
 	  }
 	  this.lastPos = mousePos;
