@@ -69,10 +69,13 @@ for (var suit in suits) {
 
 createCard("card/joker-r-75.png", "card/back-blue-75-1.png");
 createCard("card/joker-b-75.png", "card/back-blue-75-1.png");
-for (var i = 0; i < 5; ++i) {
-    createPyramid("card/red-pyramid.png", 1.00);
-    createPyramid("card/red-pyramid.png", 0.75);
-    createPyramid("card/red-pyramid.png", 0.50);
+var colors = ["red", "green", "blue", "yellow"];
+for (var color in colors) {
+ for (var i = 0; i < 5; ++i) {
+  createPyramid("card/" + colors[color] + "-pyramid.png", 1.00);
+  createPyramid("card/" + colors[color] + "-pyramid.png", 0.75);
+  createPyramid("card/" + colors[color] + "-pyramid.png", 0.50);
+ }
 }
 
 document.toz_at = agnosticRSBP();
