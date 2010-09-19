@@ -336,15 +336,21 @@ function dragMoveAndRotate(object, event) {
     result.offset = object.toLocalCoords(mouseCoords(event));
     result.lastPos = mouseCoords(event);
     result.move = function (mousePos) {
+        var thisTime = (new Date()).getTime();
 	if (Math.abs(this.offset.e(1)) < this.object.width / 4
 	        && Math.abs(this.offset.e(2)) < this.object.height / 4) {//move only
 	    this.object.move(mousePos.subtract(this.lastPos));
 	} else {
+            this.velocity = mousePos.subtract(this.lastPos).x(1 / (thisTime - this.lastTime))
+              || Vector.Zero(2);
+            var inVelocity = (this.lastPos.distanceFrom(this.object.getCenter()) 
+			      - mousePos.distanceFrom(this.object.getCenter())) 
+                              / (thisTime - this.lastTime) || 0;
 	    var oldCenter = this.object.getCenter();
     	    var oldRotation = getAbsoluteRotation(Vector.Zero(2), this.offset)
     	    var amount = mousePos.distanceFrom(oldCenter) / this.offset.modulus();
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
-	    if (amount >= 1) {
+	    if (amount >= 1 || (!this.x && inVelocity < 0.25)) {
 		    this.object.setRotation(newRotation - oldRotation);
 		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation, Vector.Zero(2)); 
 		    newCenter = mousePos.subtract(newRelativePoint);
@@ -433,7 +439,8 @@ function dragMoveAndRotate(object, event) {
 		this.object.move(mousePos.subtract(newPos));
 	    }
 	  }
-	  this.lastPos = mousePos;
+	this.lastTime = thisTime;
+      this.lastPos = mousePos;
       return false;
     }
     result.drop = function () {
