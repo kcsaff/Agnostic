@@ -1,0 +1,90 @@
+<html>
+<head>
+
+<!--
+
+# Copyright (C) 2010 by Kevin Saff
+
+# This file is part of Agnostic.
+
+# Agnostic is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# Agnostic is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+
+
+<script src="js/sylvester.src.js" type="text/javascript"></script>
+<script src="js/agnostic.js" type="text/javascript"></script>
+
+</head>
+
+<body>
+
+<!--
+<form id="questions" action="" method="GET" onSubmit="return go(this.form)">
+<label for="username">Enter a user name:</label>
+<input type="text" name="user" id="username" />
+<input type="submit" value="Go" />
+</form>
+</div>
+-->
+
+<div id="cards">
+Click card to raise it.<br />
+Drag left mouse button in center of card to move.<br />
+Drag around edge of card to move and rotate.<br />
+Clicking the middle button, or left + shift, drag out from the card to flip.<br />
+</div>
+
+
+<script type="text/javascript">
+<!-- 
+
+demand("questions", 1, '\
+<form id="questions" action="" method="GET" onSubmit="return go(this.form)">\
+<label for="username">Enter a user name:</label>\
+<input type="text" name="user" id="username" />\
+<input type="submit" value="Go" />\
+</form>\
+');
+
+var suits = ["clubs", "diamonds", "hearts", "spades"];
+var ranks = ["a", "2", "3", "4", "5", "6", "7", "8", "9", "10", "j", "q", "k"];
+for (var suit in suits) {
+   for (var rank in ranks) {
+       createCard("card/" + suits[suit] + "-" + ranks[rank] + "-75.png",
+                  "card/back-blue-75-1.png");
+   }
+}
+
+createCard("card/joker-r-75.png", "card/back-blue-75-1.png");
+createCard("card/joker-b-75.png", "card/back-blue-75-1.png");
+for (var i = 0; i < 5; ++i) {
+    createPyramid("card/red-pyramid.png", 1.00);
+    createPyramid("card/red-pyramid.png", 0.75);
+    createPyramid("card/red-pyramid.png", 0.50);
+}
+
+document.toz_at = agnosticRSBP();
+document.toz_at.write('hmm..o55-HELLLOOOO!..r');
+
+go = function(blah) {
+undemand("questions");
+return false;
+}
+ //-->
+ </script>
+
+</body>
+
+</html>
