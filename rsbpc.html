@@ -40,25 +40,8 @@ Clicking the middle button, or left + shift, drag out from the card to flip.<br 
 
 <script type="text/javascript">
 <!-- 
-var suits = ["clubs", "diamonds", "hearts", "spades"];
-var ranks = ["a", "2", "3", "4", "5", "6", "7", "8", "9", "10", "j", "q", "k"];
-for (var suit in suits) {
-   for (var rank in ranks) {
-       createCard("card/" + suits[suit] + "-" + ranks[rank] + "-75.png",
-                  "card/back-blue-75-1.png");
-   }
-}
-
-createCard("card/joker-r-75.png", "card/back-blue-75-1.png");
-createCard("card/joker-b-75.png", "card/back-blue-75-1.png");
-for (var i = 0; i < 5; ++i) {
-    createPyramid("card/red-pyramid.png", 1.00);
-    createPyramid("card/red-pyramid.png", 0.75);
-    createPyramid("card/red-pyramid.png", 0.50);
-}
-
-document.toz_at = agnosticRSBP();
-document.toz_at.write('hmm..o55-HELLLOOOO!..r');
+ 
+rsbp.poll_forever();
 
  //-->
  </script>

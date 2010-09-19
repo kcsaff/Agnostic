@@ -17,9 +17,212 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/*function include(filename)
+{
+	var head = document.getElementsByTagName('head')[0];
+	
+	script = document.createElement('script');
+	script.src = filename;
+	script.type = 'text/javascript';
+	
+	head.appendChild(script)
+}
+
+include('sylvester.src.js');*/
+
 document.onmousemove = mouseMove;
 document.onmouseup = mouseUp;
 //document.contextmenu = doNothing;
+
+var objectsByOrder = new Array();
+var objectsByName = new Object();
+
+function agnosticRSBP() {
+    rsbp = new Object();
+    rsbp.last_transaction = null;
+    rsbp.loop = false;
+    rsbp.written = "";
+    rsbp.apply = function(data) {
+	var parts = data.split("..");
+	for (var i = 1;/*ignore before first separator*/ i < parts.length; ++i) {
+	    var ds1 = parts[i].indexOf("-");
+	    var meta = parts[i].slice(0, ds1);
+	    var payload = parts[i].slice(ds1 + 1);
+	    var ds2 = meta.indexOf("o");
+	    this.last_transaction = meta.slice(1, ds2);
+	    var objectName = meta.slice(ds2 + 1);
+	    if (objectName) {
+		handleIncoming(objectName, payload);
+	    }
+	}
+	//alert(data);
+    }
+    rsbp.generate = function() {
+	var result = this.written || "";
+	this.written = "";
+	for (var i = 0; i < objectsByOrder.length; ++i) {
+	    if (objectsByOrder[i].outgoing) {
+		result += "..o" + objectsByOrder[i].name + "-" + objectsByOrder[i].outgoing;
+	    }
+	}
+	if (this.last_transaction == null) {
+	    return result + "..r";
+	} else {
+	    return result + "..t" + this.last_transaction;
+	}
+    }
+    rsbp.do_write = function(data) {
+	var http = new XMLHttpRequest();
+	http.open("POST", "RSBP", true);
+	http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	http.setRequestHeader("Content-length", data.length);
+	http.setRequestHeader("Connection", "close");
+	http.onreadystatechange = function() {
+	    if (http.readyState == 4) {
+		if (http.status == 200) {
+		    rsbp.apply(http.responseText);
+		} else if (!this.loop) {
+		    //rsbp.do_write(data);
+		}
+		if (rsbp.loop && http.status == 200) {
+		    rsbp.poll_forever();
+		}
+	    } 
+	}
+	http.send(data);
+	//alert("sent");
+    }
+    rsbp.request_all = function() {
+	return;
+    }
+    rsbp.poll_forever = function() {
+	rsbp.loop = true;
+	this.do_write(this.generate());
+    }
+    rsbp.write = function(name, payload) {
+	this.written += "..o" + name + "-" + payload;
+    }
+    return rsbp;
+}
+
+var rsbp = new agnosticRSBP();
+
+function agnosticImage(image) {
+	image.getLeft = function() {
+		return parseInt(this.style.left);
+	}
+	image.getRight = function() {
+		return parseInt(this.style.left) + this.width;
+	}
+	image.getTop = function() {
+		return parseInt(this.style.top);
+	}
+	image.getBottom = function() {
+		return parseInt(this.style.top) + this.height;
+	}
+	image.getCenter = function() {
+		return Vector.create([this.getLeft() + this.width / 2, 
+                               this.getTop() + this.height / 2])
+	}
+	image.contains = function(vector) {
+		vector = this.toLocalCoords(vector);
+		return (Math.abs(vector.e(1)) <= this.width / 2)
+			&& (Math.abs(vector.e(2)) <= this.height / 2);
+	}
+	image.recenter = function(center) {
+	    this.style.left = Math.round(center.e(1) - this.width / 2);
+	    this.style.top = Math.round(center.e(2) - this.height / 2); 
+	}
+	image.serialize = function() {
+	    var center = this.getCenter();
+	    this.outgoing = "" + center.e(1) + " " + center.e(2) + " " 
+	        + (this.currentRotation || 0) + " "
+	        + (this.image_index || 0);
+	}
+	image.throwRandomly = function() {
+	    this.recenter(randomLocation());
+	    this.setRotation(0, Math.random() * 360);
+	}
+	image.setRotation = function(radians, degrees) {
+		this.currentRotation = cleanupDegrees((degrees || 0) 
+				              + radiansToDegrees(radians));
+		var transform = "rotate(" + this.currentRotation + "deg)";
+	    this.style.webkitTransform = transform;
+	    this.style.MozTransform = transform;
+	    this.currentTransformation = Matrix.Rotation(degreesToRadians(this.currentRotation));
+	}
+	image.getRotation = function() {
+		return degreesToRadians(this.currentRotation || 0);
+	}
+	image.rotate = function(radians) {
+		this.setRotation(radians, this.currentRotation || 0);
+	}
+	image.move = function(vector) {
+		this.recenter(this.getCenter().add(vector));
+	}
+	image.incoming = function(data) {
+	    if (data == this.outgoing) {
+		this.outgoing = null;
+		return;
+	    } else if (this.outgoing) {
+		return;
+	    }
+	    var nums = data.split(" ", 4);
+	    var center = Vector.create([parseFloat(nums[0]), parseFloat(nums[1])]);
+	    var degrees = parseFloat(nums[2]);
+	    this.image_index = parseInt(nums[3] || 0) % this.images.length;
+	    this.src = this.images[this.image_index];
+	    this.recenter(center);
+	    this.setRotation(0, degrees);
+	}
+	image.flip = function(amount) {
+	    this.image_index = (this.image_index || 0) + ((amount == undefined) ? 1 : amount);
+	    this.image_index %= this.images.length;
+	    if (this.image_index < 0) {
+	    	this.image_index += this.images.length;
+	    }
+	    this.src = this.images[this.image_index];
+	}
+	image.setTransformation = function(m) {
+    	var transform = "matrix(" + m.e(1,1) + ", " + m.e(2,1) + ", " + m.e(1,2) + ", " + m.e(2,2) + ", 0, 0)";
+        this.style.webkitTransform = transform;
+        this.style.MozTransform = transform; 
+        this.currentTransformation = m;
+	}
+	image.getTransformation = function() {
+		return this.currentTransformation || Matrix.I(2);
+	}
+	image.toLocalCoords = function(globalCoords) {
+		return this.getTransformation().inv().x(globalCoords.subtract(this.getCenter()));
+	}
+	image.toGlobalCoords = function(localCoords) {
+		return this.getTransformation().x(localCoords).add(this.getCenter());
+	}
+	/*image.getCurrent3dOffset = function(offset, pos) {
+		//Get 3D vector representing location of offset with respect to the center
+		// if it is currently at screen position "pos".
+		var oldLength = offset.modulus();
+		var res2d = pos.subtract(this.getCenter());
+		var newLength = res2d.modulus();
+		return Vector.create([res2d.e(1), res2d.e(2), 
+		                      Math.sqrt(oldLength * oldLength - newLength * newLength)]);
+		
+	}
+	image.do3dRotate = function(offset, lastpos, pos, stuck) {
+		//Apply a 3d rotation corresponding to moving the relative point offset
+		// on the object, from the absolute screen location lastpos to pos,
+		// assuming the object is currently stuck at "stuck" (abs. screen location)
+		
+	}
+	image.complexRotate = function(offset, lastpos, pos) {
+		//Transform image so that the part corresponding to offset ends up at
+		// pos.
+		
+	}*/
+	image.normal = Vector.create([0,0,1])
+	return image
+}
+
 
 var betterAction = null;
 
@@ -28,19 +231,16 @@ function doNothing(ev) {
 
 function mouseCoords(ev) {
 	if (ev.pageX || ev.pageY) {
-		return {x:ev.pageX, y:ev.pageY};
+		return Vector.create([ev.pageX, ev.pageY]);
 	}
-	return {
-		x:ev.clientX + document.body.scrollLeft - document.body.clientLeft,
-		y:ev.clientY + document.body.scrollTop - document.body.clientTop
-	};
+	return Vector.create([ev.clientX + document.body.scrollLeft - document.body.clientLeft,
+	                      ev.clientY + document.body.scrollTop - document.body.clientTop]);
+
 }
 
 function getMouseOffset(target, ev) {
 	ev = ev || window.event;
-	var docPos = getPosition(target);
-	var mousePos = mouseCoords(ev);
-	return {x:mousePos.x - docPos.x, y:mousePos.y - docPos.y};
+	return mouseCoords(ev).subtract(getPosition(target));
 }
 
 function getPosition(e) {
@@ -55,7 +255,7 @@ function getPosition(e) {
 	left += e.offsetLeft;
 	top += e.offsetTop;
 	
-	return {x:left, y:top};
+	return Vector.create([left, top]);
 }
 
 var whichButton = [0, 'left', 'middle', 'right']; //most
@@ -94,123 +294,18 @@ function fixZOrder(array) {
     }
 }
 
-var draggables = new Array();
-var oneTime = 1;
-
-function isPositionInBox(pos, obj) {
-    pos = rotateAround(getObjectCenter(obj), pos, 
-		       -degreesToRadians(obj.currentRotation))
-    var left = parseInt(obj.style.left);
-    var top = parseInt(obj.style.top);
-    if (pos.x < left) {
-	return false;
-    }
-    if (pos.x > left + obj.width) {
-	return false;
-    }
-    if (pos.y < top) {
-	return false;
-    }
-    if (pos.y > top + obj.height) {
-	return false;
-    }
-    return true;
+function getRotation(vector) {//in radians
+	return Math.atan2(vector.e(2), vector.e(1));
 }
 
-function getObjectCenter(obj) {
-	var left = parseInt(obj.style.left);
-	var top = parseInt(obj.style.top);
-	return {x: left + obj.width / 2, y: top + obj.height / 2};
-}
+//alert("" + getRotation($V([1,0])) + " " + getRotation($V([0,1])) + " " + getRotation($V([-1,0])))
 
 function getAbsoluteRotation(center, point) { //in radians
-    return Math.atan2(point.y  - center.y, point.x  - center.x);
+    return getRotation(point.subtract(center));
 }
 
 function getRelativeRotation(center, first, last) { //in radians
     return getAbsoluteRotation(center, last) - getAbsoluteRotation(center, first);
-}
-
-function getRelative(point1, point2) {
-    return {x:point2.x - point1.x, 
-	    y:point2.y - point1.y};
-}
-
-function getRelative3(point1, point2) {
-    return {x:point2.x - point1.x, 
-	    y:point2.y - point1.y,
-	    z:point2.z - point1.z};
-}
-
-function applyRelative(point1, point2) {
-    return {x:point2.x + point1.x, 
-	    y:point2.y + point1.y};
-}
-
-function vectorLength(rel) {
-    return Math.sqrt(rel.x * rel.x + rel.y * rel.y);
-}
-
-function vectorLength3(rel) {
-    return Math.sqrt(rel.x * rel.x + rel.y * rel.y + rel.z * rel.z);
-}
-
-function vectorMultiply(v, amount) {
-    return {x:v.x * amount,
-	    y:v.y * amount};
-}
-
-function distance(point1, point2) {
-    return vectorLength(getRelative(point1, point2));
-}
-
-function distance3(point1, point2) {
-    return vectorLength3(getRelative3(point1, point2));
-}
-
-function rotateAround(center, point, radians) {
-    if (!radians) return point;
-    return applyRelative(center, rotateVector(getRelative(center, point), radians));
-}
-
-function rotateVector(rel, radians) {
-    return {x:rel.x * Math.cos(radians) - rel.y * Math.sin(radians),
-	    y:rel.x * Math.sin(radians) + rel.y * Math.cos(radians)};
-}
-
-function getRelativePosition(pos, obj) {
-    pos = rotateAround(getObjectCenter(obj), pos, 
-		       -degreesToRadians(obj.currentRotation))
-    var left = parseInt(obj.style.left);
-    var top = parseInt(obj.style.top);
-    var result = "in";
-    var badness = 0;
-    var bad = [left - pos.x, pos.x - (left + obj.width),
-	       top - pos.y, pos.y - (top + obj.height)];
-    var names = ["left", "right", "up", "down"];
-    for (var i=0; i < 4; ++i) {
-        if (bad[i] > badness) {
-	    badness = bad[i];
-	    result = names[i];
-	}
-    }
-    
-    return result;
-}
-
-function normalVector(newRel, oldRel) {
-    var newLength = vectorLength(newRel);
-    var oldLength = vectorLength(oldRel);
-    var relLength = newLength / oldLength;
-    if (relLength == 0) {
-	return {x: -oldRel.x / oldLength, y: -oldRel.y / oldLength, z: 0};
-    }
-    var relHeight = Math.sqrt(1 - relLength * relLength);
-    return {x: -newRel.x * relHeight / relLength, y: -newRel.y * relHeight / relLength, z: relLength};
-}
-
-function conjugate(vec) {
-    return {x: -vec.x, y: vec.y};
 }
 
 function degreesToRadians(deg) {
@@ -234,133 +329,108 @@ function snapDegrees(deg, increment, closeness) {
     return deg % 360;
 }
 
-function dragMove(object, event) {
-    result = {};
-    result.object = object;
-    result.object.style.position = "absolute";
-    result.mouseOffset = getMouseOffset(object, event);
-    result.move = function (mousePos) {
-        this.object.style.top = mousePos.y - this.mouseOffset.y;
-        this.object.style.left = mousePos.x - this.mouseOffset.x;
-        return false;
-    }
-    return result;
-}
-
 function dragMoveAndRotate(object, event) {
     result = {};
     result.object = object;
     result.object.style.position = "absolute";
-    result.offset = rotateVector(getRelative(getObjectCenter(object), 
-                                             mouseCoords(event)),
-				    -degreesToRadians(object.currentRotation || 0));
+    result.offset = object.toLocalCoords(mouseCoords(event));
     result.lastPos = mouseCoords(event);
     result.move = function (mousePos) {
-	if (Math.abs(this.offset.x) < this.object.width / 4
-	        && Math.abs(this.offset.y) < this.object.height / 4) {//move only
-	    applyRelativePosition(this.object, getRelative(this.lastPos, mousePos));
+	if (Math.abs(this.offset.e(1)) < this.object.width / 4
+	        && Math.abs(this.offset.e(2)) < this.object.height / 4) {//move only
+	    this.object.move(mousePos.subtract(this.lastPos));
 	} else {
-	    var oldCenter = getObjectCenter(this.object);
-	    var oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
-	    var amount = distance(oldCenter, mousePos) / vectorLength(this.offset);
+	    var oldCenter = this.object.getCenter();
+    	    var oldRotation = getAbsoluteRotation(Vector.Zero(2), this.offset)
+    	    var amount = mousePos.distanceFrom(oldCenter) / this.offset.modulus();
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
-	    if (amount >= 0) {
-		    applyAbsoluteRotation(this.object, newRotation - oldRotation);
-		    var newRelativePoint = rotateVector(this.offset, newRotation - oldRotation); 
-		    newCenter = applyRelative(mousePos, vectorMultiply(newRelativePoint, -1.0));
-		    applyAbsoluteCenter(this.object, newCenter);
-	    } else if (true || amount >= 0.5) {
-		//try out flip possibilities.
-		var oldNormal = normalVector(getRelative(oldCenter, 
-							 this.lastPos), this.offset);
-		var newNormal = normalVector(getRelative(oldCenter,
-							 mousePos), this.offset);
-		var altNormal = {x: -newNormal.x, y: -newNormal.y, z: -newNormal.z};
-
-		if (distance3(oldNormal, altNormal) < distance3(oldNormal, newNormal)) {
-		    this.offset = conjugate(this.offset);
-		    doFlip(this.object);
-		    oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset)
+	    if (amount >= 1) {
+		    this.object.setRotation(newRotation - oldRotation);
+		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation, Vector.Zero(2)); 
+		    newCenter = mousePos.subtract(newRelativePoint);
+		    this.object.recenter(newCenter);
+                    this.x = null; this.y = null;
+	    } else if (true) {
+		//First create temporary information needed for flipping.
+		if (!this.x || !this.y) {
+		    this.x = Vector.create([Math.cos(this.object.getRotation()),
+					    Math.sin(this.object.getRotation()), 0]);
+		    this.y = Vector.create([-Math.sin(this.object.getRotation()),
+					     Math.cos(this.object.getRotation()), 0]);
 		}
-
-	    	//need a transformation that keeps the center fixed, but takes the 
-	    	// offset point to mousePos along the center-mousePos axis.
-	    	//after applying this rotation, offset will be pointing right. x+
-	    	// so compress the x direction
-	    	//then rotate to current rotation.
-
-	    	//Again: first put offset on x axis
-	    	var xx1 = Math.cos(-oldRotation);
-	    	var yx1 = -Math.sin(-oldRotation);
-	    	var xy1 = -yx1;
-	    	var yy1 = xx1;
-
-	    	//Then: compress x axis.
-	    	xx1 *= amount;
-	    	yx1 *= amount;
-
-	    	//Finally: rotate to current position.
-	    	var xx2 = Math.cos(newRotation);
-	    	var yx2 = -Math.sin(newRotation);
-	    	var xy2 = -yx2;
-	    	var yy2 = xx2;
-	    	
-	    	var xx = xx1 * xx2 + xy1 * yx2;
-	    	var yx = yx1 * xx2 + yy1 * yx2;
-	    	var xy = xx1 * xy2 + xy1 * yy2;
-	    	var yy = yy1 * yy2 + yx1 * xy2;
-	    	
-	    	var transform = "matrix(" + xx + ", " + xy + ", " + yx + ", " + yy + ", 0, 0)";
-	        this.object.style.webkitTransform = transform;
-	        this.object.style.MozTransform = transform; 
-	        this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
-	    } else {
-		//try out flip possibilities.
-		var oldNormal = normalVector(getRelative(oldCenter, 
-							 this.lastPos), this.offset);
-		var newNormal = normalVector(getRelative(oldCenter,
-							 mousePos), this.offset);
-		var altNormal = {x: -newNormal.x, y: -newNormal.y, z: -newNormal.z};
-
-		if (distance3(oldNormal, altNormal) < distance3(oldNormal, newNormal)) {
-		    this.offset = conjugate(this.offset);
-		    doFlip(this.object);
-		    oldRotation = getAbsoluteRotation({x:0, y:0}, this.offset);
-		    alert("flip!");
+		if (!this.object.points) {
+		    this.object.points = new Array();
+		    this.object.points.push(Vector.create([-this.object.width / 2,
+						           -this.object.height / 2]));
+		    this.object.points.push(Vector.create([+this.object.width / 2,
+						           -this.object.height / 2]));
+		    this.object.points.push(Vector.create([-this.object.width / 2,
+						           +this.object.height / 2]));
+		    this.object.points.push(Vector.create([+this.object.width / 2,
+						           +this.object.height / 2]));
 		}
-		newRotation = degreesToRadians(this.object.currentRotation || 0) + oldRotation;
-
-	    	//need a transformation that keeps the center fixed, but takes the 
-	    	// offset point to mousePos along the center-mousePos axis.
-	    	//after applying this rotation, offset will be pointing right. x+
-	    	// so compress the x direction
-	    	//then rotate to current rotation.
-
-	    	//Again: first put offset on x axis
-	    	var xx1 = Math.cos(-oldRotation);
-	    	var yx1 = -Math.sin(-oldRotation);
-	    	var xy1 = -yx1;
-	    	var yy1 = xx1;
-
-	    	//Then: compress x axis.
-	    	xx1 *= amount;
-	    	yx1 *= amount;
-
-	    	//Finally: rotate to current position.
-	    	var xx2 = Math.cos(newRotation);
-	    	var yx2 = -Math.sin(newRotation);
-	    	var xy2 = -yx2;
-	    	var yy2 = xx2;
-	    	
-	    	var xx = xx1 * xx2 + xy1 * yx2;
-	    	var yx = yx1 * xx2 + yy1 * yx2;
-	    	var xy = xx1 * xy2 + xy1 * yy2;
-	    	var yy = yy1 * yy2 + yx1 * xy2;
-	    	
-	    	var transform = "matrix(" + xx + ", " + xy + ", " + yx + ", " + yy + ", 0, 0)";
-	        this.object.style.webkitTransform = transform;
-	        this.object.style.MozTransform = transform; 
-	        //this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
+		/*
+		  First determine which point we want to rotate around.  This should
+		  be biased towards the card's lowest point (most negative z), but
+		  if the card is fairly level we want it to be the center.  So we
+		  perform an average weighted by -z.
+		 */
+		var tot = 0;
+		var cor = Vector.Zero(2); //center of rotation	  
+		for (var i = 0; i < this.object.points.length; ++i) {
+		    var z = this.x.x(this.object.points[i].e(1)).add(
+                            this.y.x(this.object.points[i].e(2))    ).e(3);
+		    var weight = Math.exp(-z / 30.0); // 30.0 found experimentally decent.
+		    cor = cor.add(this.object.points[i].x(weight));
+		    tot += weight;
+		}
+		cor = cor.x(1.0 / tot); //Finally have center of rotation in relative coords.
+		//cor = this.object.points[3];
+		/*
+		  Now figure out both old and new 3D vectors of the grabbed point with respect
+		  to the point to rotate around.  This is easily done.  We know the total distance,
+		  and the x and y offsets, so we only need to calculate the z.  We know the z is
+                  positive since it is higher.
+		 */
+                var absCor = this.object.toGlobalCoords(cor);
+		var old2D = this.lastPos.subtract(absCor);
+		var new2D = mousePos.subtract(absCor);
+		var distance = cor.distanceFrom(this.offset);
+		var old3D = Vector.create([old2D.e(1), old2D.e(2),
+                                           Math.sqrt(distance * distance
+                                                     -old2D.modulus() * old2D.modulus()) || 0]);
+		var new3D = Vector.create([new2D.e(1), new2D.e(2),
+                                           Math.sqrt(distance * distance
+                                                     -new2D.modulus() * new2D.modulus()) || 0]);
+                /*
+                  The cross product of these is the axis of rotation.  Rotate the "x" and "y"
+                  vectors around it in the specified angle (arcsin of the length).
+                 */
+                old3D = old3D.toUnitVector();
+                new3D = new3D.toUnitVector();
+                var cp = old3D.cross(new3D);
+                var angle = Math.asin(cp.modulus());
+                var axis = Line.create([0,0], cp);
+                if (axis) {//axis usually ok, might be invalid for some math reasons
+                    this.x = this.x.rotate(angle, axis);
+                    this.y = this.y.rotate(angle, axis);
+                }
+                /*
+                  Then recalculate center based on new rotation so stuck point doesn't move.
+                 */
+                var m = Matrix.create([[this.x.e(1), this.y.e(1)],
+                                       [this.x.e(2), this.y.e(2)]]);
+                if (m.determinant() < 0) {
+                    this.x = this.x.x(-1);
+                    this.offset = Vector.create([-this.offset.e(1), this.offset.e(2)]);
+                    m = Matrix.create([[this.x.e(1), this.y.e(1)],
+                                       [this.x.e(2), this.y.e(2)]]);
+                    this.object.flip();
+                }
+                this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
+                this.object.setTransformation(m);
+                var newPos = this.object.toGlobalCoords(this.offset);
+		this.object.move(mousePos.subtract(newPos));
 	    }
 	  }
 	  this.lastPos = mousePos;
@@ -372,14 +442,6 @@ function dragMoveAndRotate(object, event) {
     return result;
 }
 
-function doFlip(object, amount) {
-    object.image_index = (object.image_index || 0) + ((amount == undefined) ? 1 : amount);
-    object.image_index %= object.images.length;
-    if (object.image_index < 0) {
-	object.image_index += object.images.length;
-    }
-    object.src = object.images[object.image_index];
-}
 
 function dragFlip(object, event) {
     result = {};
@@ -388,13 +450,13 @@ function dragFlip(object, event) {
     result.object.image_index = result.object.image_index || 0;
     result.flipped = false;
     result.move = function (mousePos) {
-        var shouldFlip = !isPositionInBox(mousePos, this.object);
+        var shouldFlip = !this.object.contains(mousePos);
         if (shouldFlip && !this.flipped && this.object.images) {
-            doFlip(this.object, +1);
+            this.object.flip(+1);
 	    this.flipped = true;
         }
         else if (false && !shouldFlip && this.flipped && this.object.images) {
-            doFlip(this.object, -1);
+            this.object.flip(-1);
 	    this.flipped = false;
         }
         return false; 
@@ -403,32 +465,8 @@ function dragFlip(object, event) {
 }
 
 function snapRotation(object, increment, closeness) {
-    applyAbsoluteRotation(object, 0, snapDegrees(object.currentRotation || 0, 
+    object.setRotation(0, snapDegrees(object.currentRotation || 0, 
 						 increment, closeness));
-}
-
-function applyAbsoluteRotation(object, radians, degrees) {
-    object.currentRotation = cleanupDegrees((degrees || 0) 
-					    + radiansToDegrees(radians));
-    transform = "rotate(" + object.currentRotation + "deg)";
-    object.style.webkitTransform = transform;
-    object.style.MozTransform = transform;
-}
-
-function applyRelativeRotation(object, radians) {
-    applyAbsoluteRotation(object, radians, object.currentRotation || 0);
-}
-
-function applyAbsoluteCenter(object, point) {
-    object.style.left = point.x - object.width / 2;
-    object.style.top = point.y - object.height / 2; 
-}
-
-function applyRelativePosition(object, vector) {
-    var left = parseInt(object.style.left);
-    var top = parseInt(object.style.top);
-    object.style.left = left + vector.x;
-    object.style.top = top + vector.y;
 }
 
 function dragArbitraryRotate(object, event) {
@@ -438,11 +476,11 @@ function dragArbitraryRotate(object, event) {
     result.mouseFirstPos = mouseCoords(event);
     result.firstRotation = object.currentRotation || 0;
     result.move = function (mousePos) {
-        newRotation = getRelativeRotation(getObjectCenter(this.object),
+        newRotation = getRelativeRotation(this.object.getCenter(),
                                           this.mouseFirstPos,
                                           mousePos);
-	applyAbsoluteRotation(this.object, newRotation, this.firstRotation);
-	snapRotation(this.object, 90, 10);
+        this.object.setRotation(newRotation, this.firstRotation);
+        //snapRotation(this.object, 90, 10);
         return false;
     }
     return result;
@@ -461,7 +499,10 @@ function mouseDown(ev) {
 
 function mouseUp() {
     if (betterAction && betterAction.drop) {
-	   betterAction.drop();
+	betterAction.drop();
+    }
+    if (betterAction && betterAction.object) {
+	betterAction.object.serialize();  
     }
     betterAction = null;
     return false;
@@ -476,29 +517,37 @@ function makeDraggable(item) {
 		} 
 		else if (getButton(ev) == 'left') {
 			betterAction = dragMoveAndRotate(this, ev);
-		} 
+		} else {
+			alert("" + this.getCenter().e(1) + " " + this.getCenter().e(2))
+			//alert("" + mouseCoords(ev).e(1) + " " + mouseCoords(ev).e(2));
+		}
 		if (betterAction) {
-		    if (moveToEnd(draggables, this)) {
-			fixZOrder(draggables);
+		    if (moveToEnd(objectsByOrder, this)) {
+			fixZOrder(objectsByOrder);
 		    }
 		    mouseMove(ev);
 		}
 		return false;
 	}
-	draggables.push(item);
 }
 
 function randomLocation() {
-    return {x:parseInt(Math.random() * (window.innerWidth - 200) + 100),
-	    y:parseInt(Math.random() * (window.innerHeight - 200) + 100)};
+    return Vector.create([parseInt(Math.random() * (window.innerWidth - 200) + 100),
+                          parseInt(Math.random() * (window.innerHeight - 200) + 100)]);
 }
 
-function throwRandomly(object) {
-    applyAbsoluteCenter(object, randomLocation());
-    applyAbsoluteRotation(object, 0, Math.random() * 360);
+var _next_id = 1;
+function get_next_id() {
+    return "i" + _next_id++;
 }
 
-function createCard(front, back) {
+function registerObject(name, obj) {
+    obj.name = name;
+    objectsByOrder.push(obj);
+    objectsByName[obj.name] = obj;
+}
+
+function createCard(front, back, id) {
     card = document.createElement("img");
     card.src = front;
     card.images = [front, back];
@@ -507,16 +556,21 @@ function createCard(front, back) {
     card.style.top = 100;
     card.style.left = 100;
     card.style.zIndex = 1;
+    card = agnosticImage(card);
     card.baseZ = 0;
-    throwRandomly(card);
+    registerObject(id || get_next_id(), card);
+    card.throwRandomly();
     if (Math.random() < 0.33) {
-	doFlip(card, 1);
+    	card.flip();
     }
     document.getElementById("cards").appendChild(card);
+    if (!id) {
+	rsbp.write("cc" + card.name, front + " " + back);
+    }
     return card;
 }
 
-function createPyramid(src, size) {
+function createPyramid(src, size, id) {
     pyramid = document.createElement("img");
     pyramid.src = src;
     pyramid.images = [src];
@@ -528,15 +582,53 @@ function createPyramid(src, size) {
     pyramid.onload = function() {
       if (this.width) {
         this.width *= size;
+        this.points = new Array();
+        this.points.push(Vector.create([0, -this.height / 2]));
+        this.points.push(Vector.create([-this.width / 2,
+				        +this.height / 2]));
+        this.points.push(Vector.create([+this.width / 2,
+				        +this.height / 2]));
       }
-      /*if (pyramid.style.width) {
-        pyramid.style.width = parseInt(pyramid.style.width) * size;
-      }*/
     };
-    //pyramid.width *= size;
+    pyramid = agnosticImage(pyramid);
     pyramid.baseZ = 200;
-    throwRandomly(pyramid);
+    registerObject(id || get_next_id(), pyramid);
+    pyramid.throwRandomly();
     document.getElementById("cards").appendChild(pyramid);
     return pyramid;
 }
 
+
+function handleIncoming(name, data) {
+    if (name[0] == "i") {
+	if (objectsByName[name]) {
+	    objectsByName[name].incoming(data);
+	} else {
+	    alert(name + " not found!");
+	}
+    } else if (name[0] == "c") {
+	var realname = name.slice(2);
+	if (name[1] == "c") {
+	    if (!objectsByName[realname]) {
+		var info = data.split(" ");
+		createCard(info[0], info[1], realname);
+	    } else {
+		alert("Already created: " + name + ", " + data);
+	    }
+	}
+	else if (name[1] == "p") {
+	    if (!objectsByName[realname]) {
+		var info = data.split(" ");
+		createPyramid(info[0], info[1], realname);
+	    } else {
+		alert("Already created: " + name + ", " + data);
+	    }
+	}
+	else {
+	    alert("Can't create: " + name + ", " + data);
+	}
+    }
+    else {
+	alert("Unhandled object: " + name + ", " + data);
+    }
+}
