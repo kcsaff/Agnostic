@@ -82,9 +82,9 @@ function agnosticRSBP() {
 		if (http.status == 200) {
 		    rsbp.apply(http.responseText);
 		} else if (!this.loop) {
-		    rsbp.do_write(data);
+		    //rsbp.do_write(data);
 		}
-		if (rsbp.loop) {
+		if (rsbp.loop && http.status == 200) {
 		    rsbp.poll_forever();
 		}
 	    } 
@@ -130,8 +130,8 @@ function agnosticImage(image) {
 			&& (Math.abs(vector.e(2)) <= this.height / 2);
 	}
 	image.recenter = function(center) {
-	    this.style.left = center.e(1) - this.width / 2;
-	    this.style.top = center.e(2) - this.height / 2; 
+	    this.style.left = Math.round(center.e(1) - this.width / 2);
+	    this.style.top = Math.round(center.e(2) - this.height / 2); 
 	}
 	image.serialize = function() {
 	    var center = this.getCenter();
@@ -346,10 +346,85 @@ function dragMoveAndRotate(object, event) {
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
 	    if (amount >= 1) {
 		    this.object.setRotation(newRotation - oldRotation);
-		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation,
-		    										   Vector.Zero(2)); 
+		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation, Vector.Zero(2)); 
 		    newCenter = mousePos.subtract(newRelativePoint);
 		    this.object.recenter(newCenter);
+                    this.x = null; this.y = null;
+	    } else if (true) {
+		//First create temporary information needed for flipping.
+		if (!this.x || !this.y) {
+		    this.x = Vector.create([Math.cos(this.object.getRotation()),
+					    Math.sin(this.object.getRotation()), 0]);
+		    this.y = Vector.create([-Math.sin(this.object.getRotation()),
+					     Math.cos(this.object.getRotation()), 0]);
+		}
+		if (!this.points) {
+		    this.points = new Array();
+		    this.points.push(Vector.create([-this.object.width / 2,
+						    -this.object.height / 2]));
+		    this.points.push(Vector.create([+this.object.width / 2,
+						    -this.object.height / 2]));
+		    this.points.push(Vector.create([-this.object.width / 2,
+						    +this.object.height / 2]));
+		    this.points.push(Vector.create([+this.object.width / 2,
+						    +this.object.height / 2]));
+		}
+		/*
+		  First determine which point we want to rotate around.  This should
+		  be biased towards the card's lowest point (most negative z), but
+		  if the card is fairly level we want it to be the center.  So we
+		  perform an average weighted by -z.
+		 */
+		var tot = 0;
+		var cor = Vector.Zero(2);	  
+		for (var i = 0; i < this.points.length; ++i) {
+		    var z = this.x.x(this.points[i].e(1)).add(this.y.x(this.points[i].e(2))).e(3);
+		    var weight = Math.exp(-z / 30.0);
+		    cor = cor.add(this.points[i].x(weight));
+		    tot += weight;
+		}
+		cor = cor.x(1.0 / tot); //Finally have center of rotation in relative coords.
+		//cor = this.points[3];
+		/*
+		  Now figure out both old and new 3D vectors of the grabbed point with respect
+		  to the point to rotate around.  This is easily done.  We know the total distance,
+		  and the x and y offsets, so we only need to calculate the z.  We know the z is
+                  positive since it is higher.
+		 */
+                var absCor = this.object.toGlobalCoords(cor);
+		var old2D = this.lastPos.subtract(absCor);
+		var new2D = mousePos.subtract(absCor);
+		var distance = cor.distanceFrom(this.offset);
+		var old3D = Vector.create([old2D.e(1), old2D.e(2),
+                                           Math.sqrt(distance * distance
+                                                     -old2D.modulus() * old2D.modulus()) || 0]);
+		var new3D = Vector.create([new2D.e(1), new2D.e(2),
+                                           Math.sqrt(distance * distance
+                                                     -new2D.modulus() * new2D.modulus()) || 0]);
+		//alert("" + old3D.inspect() + " " + new3D.inspect());
+                /*
+                  The cross product of these is the axis of rotation.  Rotate the "x" and "y"
+                  vectors around it in the specified angle (arcsin of the length).
+                 */
+                old3D = old3D.toUnitVector();
+                new3D = new3D.toUnitVector();
+                var cp = old3D.cross(new3D);
+                var angle = Math.asin(cp.modulus());
+                var axis = Line.create([0,0], cp);
+		//alert("" + cp.inspect() + " " + angle);
+                this.x = this.x.rotate(angle, axis);
+                this.y = this.y.rotate(angle, axis);
+		//alert(this.x.inspect() + "," + this.y.inspect());
+                /*
+                  Then recalculate center based on new rotation so stuck point doesn't move.
+                 */
+                var m = Matrix.create([[this.x.e(1), this.y.e(1)],
+                                       [this.x.e(2), this.y.e(2)]]);
+                this.object.setTransformation(m);
+                var newPos = this.object.toGlobalCoords(this.offset);
+		this.object.move(mousePos.subtract(newPos));
+                //var newAbsCor = this.object.toGlobalCoords(cor);
+                //this.object.move(absCor.subtract(newAbsCor));
 	    } else {
 	    	//need a transformation that keeps the center fixed, but takes the 
 	    	// offset point to mousePos along the center-mousePos axis.
