@@ -680,6 +680,23 @@ function demand(ref, priority, text) {
     _show_demands();
 }
 
+function _fade_demand() {
+    if (document.getElementById("demand")) {
+	var demand = document.getElementById("demand");
+	var opacity = parseFloat(demand.style.opacity);
+	opacity -= 0.03;
+	if (opacity <= 0) {
+	    document.body.removeChild(document.getElementById("demand"));
+            if (document.getElementById("demandinner")) {
+	        document.body.removeChild(document.getElementById("demandinner"));
+            }
+	} else {
+	    demand.style.opacity = opacity;
+	    setTimeout(_fade_demand, 40);
+	}
+    }
+}
+
 function _show_demands() {
     var text = null;
     var priority = -1;
@@ -693,6 +710,8 @@ function _show_demands() {
 	document.body.removeChild(document.getElementById("demandinner"));
     }
     if (!text) {
+	_fade_demand();
+	return;
 	if (document.getElementById("demand")) {
 	    document.body.removeChild(document.getElementById("demand"));
 	}
@@ -719,6 +738,6 @@ function _show_demands() {
     inner.width = window.innerWidth;
     inner.style.minWidth = window.innerWidth;
     inner.style.left = 0;
-    inner.style.top = window.innerHeight / 2 - 10;
+    inner.style.top = window.innerHeight / 2 - 150;
     document.body.appendChild(inner);
 }
