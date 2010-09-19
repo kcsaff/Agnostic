@@ -411,36 +411,25 @@ function dragMoveAndRotate(object, event) {
                 var cp = old3D.cross(new3D);
                 var angle = Math.asin(cp.modulus());
                 var axis = Line.create([0,0], cp);
-		//alert("" + cp.inspect() + " " + angle);
-                this.x = this.x.rotate(angle, axis);
-                this.y = this.y.rotate(angle, axis);
-		//alert(this.x.inspect() + "," + this.y.inspect());
+                if (axis) {//axis usually ok, might be invalid for some math reasons
+                    this.x = this.x.rotate(angle, axis);
+                    this.y = this.y.rotate(angle, axis);
+                }
                 /*
                   Then recalculate center based on new rotation so stuck point doesn't move.
                  */
                 var m = Matrix.create([[this.x.e(1), this.y.e(1)],
                                        [this.x.e(2), this.y.e(2)]]);
+                if (m.determinant() < 0) {
+                    this.x = this.x.x(-1);
+                    this.offset = Vector.create([-this.offset.e(1), this.offset.e(2)]);
+                    m = Matrix.create([[this.x.e(1), this.y.e(1)],
+                                       [this.x.e(2), this.y.e(2)]]);
+                    this.object.flip();
+                }
                 this.object.setTransformation(m);
                 var newPos = this.object.toGlobalCoords(this.offset);
 		this.object.move(mousePos.subtract(newPos));
-                //var newAbsCor = this.object.toGlobalCoords(cor);
-                //this.object.move(absCor.subtract(newAbsCor));
-	    } else {
-	    	//need a transformation that keeps the center fixed, but takes the 
-	    	// offset point to mousePos along the center-mousePos axis.
-	    	//after applying this rotation, offset will be pointing right. x+
-	    	// so compress the x direction
-	    	//then rotate to current rotation.
-
-	    	//Again: first put offset on x axis
-	    	var m = Matrix.Rotation(-oldRotation)
-	    	//Then: compress x axis.
-	    	m = Matrix.Diagonal([amount, 1]).multiply(m);
-	    	//Finally: rotate to current position.
-	    	m = Matrix.Rotation(newRotation).multiply(m);
-
-	        this.object.setRotation(newRotation - oldRotation);
-	        this.object.setTransformation(m);
 	    }
 	  }
 	  this.lastPos = mousePos;
