@@ -358,16 +358,16 @@ function dragMoveAndRotate(object, event) {
 		    this.y = Vector.create([-Math.sin(this.object.getRotation()),
 					     Math.cos(this.object.getRotation()), 0]);
 		}
-		if (!this.points) {
-		    this.points = new Array();
-		    this.points.push(Vector.create([-this.object.width / 2,
-						    -this.object.height / 2]));
-		    this.points.push(Vector.create([+this.object.width / 2,
-						    -this.object.height / 2]));
-		    this.points.push(Vector.create([-this.object.width / 2,
-						    +this.object.height / 2]));
-		    this.points.push(Vector.create([+this.object.width / 2,
-						    +this.object.height / 2]));
+		if (!this.object.points) {
+		    this.object.points = new Array();
+		    this.object.points.push(Vector.create([-this.object.width / 2,
+						           -this.object.height / 2]));
+		    this.object.points.push(Vector.create([+this.object.width / 2,
+						           -this.object.height / 2]));
+		    this.object.points.push(Vector.create([-this.object.width / 2,
+						           +this.object.height / 2]));
+		    this.object.points.push(Vector.create([+this.object.width / 2,
+						           +this.object.height / 2]));
 		}
 		/*
 		  First determine which point we want to rotate around.  This should
@@ -376,15 +376,16 @@ function dragMoveAndRotate(object, event) {
 		  perform an average weighted by -z.
 		 */
 		var tot = 0;
-		var cor = Vector.Zero(2);	  
-		for (var i = 0; i < this.points.length; ++i) {
-		    var z = this.x.x(this.points[i].e(1)).add(this.y.x(this.points[i].e(2))).e(3);
-		    var weight = Math.exp(-z / 30.0);
-		    cor = cor.add(this.points[i].x(weight));
+		var cor = Vector.Zero(2); //center of rotation	  
+		for (var i = 0; i < this.object.points.length; ++i) {
+		    var z = this.x.x(this.object.points[i].e(1)).add(
+                            this.y.x(this.object.points[i].e(2))    ).e(3);
+		    var weight = Math.exp(-z / 30.0); // 30.0 found experimentally decent.
+		    cor = cor.add(this.object.points[i].x(weight));
 		    tot += weight;
 		}
 		cor = cor.x(1.0 / tot); //Finally have center of rotation in relative coords.
-		//cor = this.points[3];
+		//cor = this.object.points[3];
 		/*
 		  Now figure out both old and new 3D vectors of the grabbed point with respect
 		  to the point to rotate around.  This is easily done.  We know the total distance,
@@ -401,7 +402,6 @@ function dragMoveAndRotate(object, event) {
 		var new3D = Vector.create([new2D.e(1), new2D.e(2),
                                            Math.sqrt(distance * distance
                                                      -new2D.modulus() * new2D.modulus()) || 0]);
-		//alert("" + old3D.inspect() + " " + new3D.inspect());
                 /*
                   The cross product of these is the axis of rotation.  Rotate the "x" and "y"
                   vectors around it in the specified angle (arcsin of the length).
@@ -427,6 +427,7 @@ function dragMoveAndRotate(object, event) {
                                        [this.x.e(2), this.y.e(2)]]);
                     this.object.flip();
                 }
+                this.object.currentRotation = radiansToDegrees(newRotation - oldRotation);
                 this.object.setTransformation(m);
                 var newPos = this.object.toGlobalCoords(this.offset);
 		this.object.move(mousePos.subtract(newPos));
@@ -528,8 +529,6 @@ function makeDraggable(item) {
 		}
 		return false;
 	}
-	//objectsByOrder.push(item);
-	//objectsByName[item.name] = item;
 }
 
 function randomLocation() {
@@ -583,6 +582,12 @@ function createPyramid(src, size, id) {
     pyramid.onload = function() {
       if (this.width) {
         this.width *= size;
+        this.points = new Array();
+        this.points.push(Vector.create([0, -this.height / 2]));
+        this.points.push(Vector.create([-this.width / 2,
+				        +this.height / 2]));
+        this.points.push(Vector.create([+this.width / 2,
+				        +this.height / 2]));
       }
     };
     pyramid = agnosticImage(pyramid);
