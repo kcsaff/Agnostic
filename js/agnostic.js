@@ -133,6 +133,12 @@ function agnosticImage(image) {
 	    this.style.left = center.e(1) - this.width / 2;
 	    this.style.top = center.e(2) - this.height / 2; 
 	}
+	image.serialize = function() {
+	    var center = this.getCenter();
+	    this.outgoing = "" + center.e(1) + " " + center.e(2) + " " 
+	        + (this.currentRotation || 0) + " "
+	        + (this.image_index || 0);
+	}
 	image.throwRandomly = function() {
 	    this.recenter(randomLocation());
 	    this.setRotation(0, Math.random() * 360);
@@ -153,6 +159,21 @@ function agnosticImage(image) {
 	}
 	image.move = function(vector) {
 		this.recenter(this.getCenter().add(vector));
+	}
+	image.incoming = function(data) {
+	    if (data == this.outgoing) {
+		this.outgoing = null;
+		return;
+	    } else if (this.outgoing) {
+		return;
+	    }
+	    var nums = data.split(" ", 4);
+	    var center = Vector.create([parseFloat(nums[0]), parseFloat(nums[1])]);
+	    var degrees = parseFloat(nums[2]);
+	    this.image_index = parseInt(nums[3] || 0) % this.images.length;
+	    this.src = this.images[this.image_index];
+	    this.recenter(center);
+	    this.setRotation(0, degrees);
 	}
 	image.flip = function(amount) {
 	    this.image_index = (this.image_index || 0) + ((amount == undefined) ? 1 : amount);
@@ -413,7 +434,10 @@ function mouseDown(ev) {
 
 function mouseUp() {
     if (betterAction && betterAction.drop) {
-	   betterAction.drop();
+	betterAction.drop();
+    }
+    if (betterAction && betterAction.object) {
+	betterAction.object.serialize();  
     }
     betterAction = null;
     return false;
@@ -509,7 +533,7 @@ function createPyramid(src, size, id) {
 function handleIncoming(name, data) {
     if (name[0] == "i") {
 	if (objectsByName[name]) {
-	    objectsByName[name].incoming(payload);
+	    objectsByName[name].incoming(data);
 	} else {
 	    alert(name + " not found!");
 	}
