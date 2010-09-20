@@ -540,7 +540,7 @@ function mouseUp() {
 function makeDraggable(item) {
 	if (!item) return;
         var self = item;
-	self.e.onmousedown = function(ev) {
+	self.e.onmousedown = function(ev) {//TODO: circular reference.
 	    if (getButton(ev) == 'middle' 
 		|| (getButton(ev) == 'left' && ev.shiftKey)) {
 			betterAction = dragFlip(self, ev);

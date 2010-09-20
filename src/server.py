@@ -56,6 +56,8 @@ class Server(BaseHTTPRequestHandler):
     paths = {'': '', 
              'js':'js',
              'card': 'card',
+             'tarot': 'tarot',
+             'pyramid': 'pyramid',
              }
     types = {'.html': 'text/html',
              '.js': 'text/javascript',

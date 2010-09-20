@@ -41,7 +41,7 @@ Clicking the middle button, or left + shift, drag out from the card to flip.<br 
 <script type="text/javascript">
 <!-- 
  
-//rsbp.raw_write("..n");
+rsbp.raw_write("..n");
 
 createTarotDeck();
 
@@ -61,7 +61,7 @@ for (var color in colors) {
 
 go = function(blah) {
     undemand("questions");
-    //rsbp.poll_forever();
+    rsbp.poll_forever();
     return false;
 }
 
