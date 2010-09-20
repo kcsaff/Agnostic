@@ -141,13 +141,13 @@ function agnosticRSBP() {
     rsbp.request_all = function() {
 	return;
     }
-    rsbp.do_poll_forever = function() {
-	this.loop = true;
+    rsbp.poll = function() {
 	this.do_write(this.generate());
     }
     rsbp.poll_forever = function() {
+	this.loop = true;
 	var self = this;
-	setTimeout(function() {self.do_poll_forever();}, this.minimum_wait);
+	setTimeout(function() {self.poll();}, this.minimum_wait);
     }
     rsbp.write = function(name, payload) {
 	this.written.push("..o" + name + "-" + payload);
