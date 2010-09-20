@@ -160,129 +160,110 @@ function agnosticRSBP() {
 
 var rsbp = new agnosticRSBP();
 
-function agnosticImage(image) {
-	image.getLeft = function() {
-		return parseInt(this.style.left);
-	}
-	image.getRight = function() {
-		return parseInt(this.style.left) + this.width;
-	}
-	image.getTop = function() {
-		return parseInt(this.style.top);
-	}
-	image.getBottom = function() {
-		return parseInt(this.style.top) + this.height;
-	}
-	image.getCenter = function() {
-		return Vector.create([this.getLeft() + this.width / 2, 
-                               this.getTop() + this.height / 2])
-	}
-	image.contains = function(vector) {
-		vector = this.toLocalCoords(vector);
-		return (Math.abs(vector.e(1)) <= this.width / 2)
-			&& (Math.abs(vector.e(2)) <= this.height / 2);
-	}
-	image.recenter = function(center) {
-	    this.style.left = Math.round(center.e(1) - this.width / 2);
-	    this.style.top = Math.round(center.e(2) - this.height / 2); 
-	}
-	image.serialize = function() {
-	    var center = this.getCenter();
-	    this.outgoing = "" + Math.round(center.e(1)) + " " + Math.round(center.e(2)) + " " 
+function agImage(element) {
+    this.e = element;
+    this.e.style.position = "absolute";
+}
+agImage.prototype = {
+    getLeft: function() {
+	return parseInt(this.e.style.left);
+    },
+    getRight: function() {
+	return parseInt(this.e.style.left) + this.e.width;
+    },
+    getTop: function() {
+        return parseInt(this.e.style.top);
+    },
+    getBottom: function() {
+        return parseInt(this.e.style.top) + this.e.height;
+    },
+    getCenter: function() {
+        return Vector.create([this.getLeft() + this.e.width / 2, 
+                              this.getTop() + this.e.height / 2])
+    },
+    contains: function(vector) {
+        vector = this.toLocalCoords(vector);
+        return (Math.abs(vector.e(1)) <= this.e.width / 2)
+	    && (Math.abs(vector.e(2)) <= this.e.height / 2);
+    },
+    recenter: function(center) {
+        this.e.style.left = Math.round(center.e(1) - this.e.width / 2);
+        this.e.style.top = Math.round(center.e(2) - this.e.height / 2); 
+    },
+    serialize:function() {
+        var center = this.getCenter();
+        this.outgoing = "" + Math.round(center.e(1)) + " " + Math.round(center.e(2)) + " " 
 	        + Math.round(this.currentRotation || 0) + " "
 	        + (this.image_index || 0);
-	}
-	image.throwRandomly = function() {
-	    this.recenter(randomLocation());
-	    this.setRotation(0, Math.random() * 360);
-	}
-	image.setRotation = function(radians, degrees) {
-		this.currentRotation = cleanupDegrees((degrees || 0) 
+    },
+    throwRandomly: function() {
+        this.recenter(randomLocation());
+        this.setRotation(0, Math.random() * 360);
+    },
+    setRotation: function(radians, degrees) {
+        this.currentRotation = cleanupDegrees((degrees || 0) 
 				              + radiansToDegrees(radians));
-		var transform = "rotate(" + this.currentRotation + "deg)";
-	    this.style.webkitTransform = transform;
-	    this.style.MozTransform = transform;
-	    this.currentTransformation = Matrix.Rotation(degreesToRadians(this.currentRotation));
+        var transform = "rotate(" + this.currentRotation + "deg)";
+        this.e.style.webkitTransform = transform;
+        this.e.style.MozTransform = transform;
+        this.currentTransformation = Matrix.Rotation(degreesToRadians(this.currentRotation));
+    },
+    getRotation: function() {
+        return degreesToRadians(this.currentRotation || 0);
+    },
+    rotate: function(radians) {
+        this.setRotation(radians, this.currentRotation || 0);
+    },
+    move: function(vector) {
+        this.recenter(this.getCenter().add(vector));
+    },
+    moveToFront: function() {
+        if (moveToEnd(objectsByOrder, this)) {
+	    fixZOrder(objectsByOrder);
 	}
-	image.getRotation = function() {
-		return degreesToRadians(this.currentRotation || 0);
+    },
+    incoming: function(data) {
+        this.moveToFront();
+        if (data == this.outgoing) {
+            this.outgoing = null;
+            return;
+	} else if (this.outgoing) {
+	    return;
 	}
-	image.rotate = function(radians) {
-		this.setRotation(radians, this.currentRotation || 0);
-	}
-	image.move = function(vector) {
-		this.recenter(this.getCenter().add(vector));
-	}
-	image.moveToFront = function() {
-	    if (moveToEnd(objectsByOrder, this)) {
-	        fixZOrder(objectsByOrder);
-	    }
-	}
-	image.incoming = function(data) {
-	    //return;
-	    this.moveToFront();
-	    if (data == this.outgoing) {
-		this.outgoing = null;
-		return;
-	    } else if (this.outgoing) {
-		return;
-	    }
-	    var nums = data.split(" ", 4);
-	    var center = Vector.create([parseFloat(nums[0]), parseFloat(nums[1])]);
-	    var degrees = parseFloat(nums[2]);
-	    this.image_index = parseInt(nums[3] || 0) % this.images.length;
-	    this.src = this.images[this.image_index];
-	    this.recenter(center);
-	    this.setRotation(0, degrees);
-	}
-	image.flip = function(amount) {
-	    this.image_index = (this.image_index || 0) + ((amount == undefined) ? 1 : amount);
-	    this.image_index %= this.images.length;
-	    if (this.image_index < 0) {
-	    	this.image_index += this.images.length;
-	    }
-	    this.src = this.images[this.image_index];
-	}
-	image.setTransformation = function(m) {
+	var nums = data.split(" ", 4);
+	var center = Vector.create([parseFloat(nums[0]), parseFloat(nums[1])]);
+	var degrees = parseFloat(nums[2]);
+	this.image_index = parseInt(nums[3] || 0) % this.images.length;
+	this.e.src = this.images[this.image_index];
+	this.recenter(center);
+	this.setRotation(0, degrees);
+    },
+    flip: function(amount) {
+        this.image_index = (this.image_index || 0) + ((amount == undefined) ? 1 : amount);
+        this.image_index %= this.images.length;
+        if (this.image_index < 0) {
+            this.image_index += this.images.length;
+        }
+	this.e.src = this.images[this.image_index];
+    },
+    setTransformation: function(m) {
     	var transform = "matrix(" + m.e(1,1) + ", " + m.e(2,1) + ", " 
                                   + m.e(1,2) + ", " + m.e(2,2) + ", 0, 0)";
-        this.style.webkitTransform = transform;
-        this.style.MozTransform = transform; 
+        this.e.style.webkitTransform = transform;
+        this.e.style.MozTransform = transform; 
         this.currentTransformation = m;
-	}
-	image.getTransformation = function() {
-		return this.currentTransformation || Matrix.I(2);
-	}
-	image.toLocalCoords = function(globalCoords) {
-		return this.getTransformation().inv().x(globalCoords.subtract(this.getCenter()));
-	}
-	image.toGlobalCoords = function(localCoords) {
-		return this.getTransformation().x(localCoords).add(this.getCenter());
-	}
-	/*image.getCurrent3dOffset = function(offset, pos) {
-		//Get 3D vector representing location of offset with respect to the center
-		// if it is currently at screen position "pos".
-		var oldLength = offset.modulus();
-		var res2d = pos.subtract(this.getCenter());
-		var newLength = res2d.modulus();
-		return Vector.create([res2d.e(1), res2d.e(2), 
-		                      Math.sqrt(oldLength * oldLength - newLength * newLength)]);
-		
-	}
-	image.do3dRotate = function(offset, lastpos, pos, stuck) {
-		//Apply a 3d rotation corresponding to moving the relative point offset
-		// on the object, from the absolute screen location lastpos to pos,
-		// assuming the object is currently stuck at "stuck" (abs. screen location)
-		
-	}
-	image.complexRotate = function(offset, lastpos, pos) {
-		//Transform image so that the part corresponding to offset ends up at
-		// pos.
-		
-	}*/
-	image.normal = Vector.create([0,0,1])
-	return image
+    },
+    getTransformation: function() {
+        return this.currentTransformation || Matrix.I(2);
+    },
+    toLocalCoords: function(globalCoords) {
+        return this.getTransformation().inv().x(globalCoords.subtract(this.getCenter()));
+    },
+    toGlobalCoords: function(localCoords) {
+        return this.getTransformation().x(localCoords).add(this.getCenter());
+    }
 }
+
 
 
 var betterAction = null;
@@ -297,26 +278,6 @@ function mouseCoords(ev) {
 	return Vector.create([ev.clientX + document.body.scrollLeft - document.body.clientLeft,
 	                      ev.clientY + document.body.scrollTop - document.body.clientTop]);
 
-}
-
-function getMouseOffset(target, ev) {
-	ev = ev || window.event;
-	return mouseCoords(ev).subtract(getPosition(target));
-}
-
-function getPosition(e) {
-	var left = 0;
-	var top = 0;
-	
-	while (e.offsetParent) {
-		left += e.offsetLeft;
-		top += e.offsetTop;
-		e = e.offsetParent;
-	}
-	left += e.offsetLeft;
-	top += e.offsetTop;
-	
-	return Vector.create([left, top]);
 }
 
 var whichButton = [0, 'left', 'middle', 'right']; //most
@@ -351,7 +312,7 @@ function moveToEnd(array, item) {
 
 function fixZOrder(array) {
     for (var i = 0; i < array.length; ++i) {
-	array[i].style.zIndex = (array[i].baseZ || 0) + i;
+	array[i].e.style.zIndex = (array[i].baseZ || 0) + i;
     }
 }
 
@@ -393,13 +354,12 @@ function snapDegrees(deg, increment, closeness) {
 function dragMoveAndRotate(object, event) {
     result = {};
     result.object = object;
-    result.object.style.position = "absolute";
     result.offset = object.toLocalCoords(mouseCoords(event));
     result.lastPos = mouseCoords(event);
     result.move = function (mousePos) {
         var thisTime = (new Date()).getTime();
-	if (Math.abs(this.offset.e(1)) < this.object.width / 4
-	        && Math.abs(this.offset.e(2)) < this.object.height / 4) {//move only
+	if (Math.abs(this.offset.e(1)) < this.object.e.width / 4
+	        && Math.abs(this.offset.e(2)) < this.object.e.height / 4) {//move only
 	    this.object.move(mousePos.subtract(this.lastPos));
 	} else {
             this.velocity = mousePos.subtract(this.lastPos).x(1 / (thisTime - this.lastTime))
@@ -427,14 +387,14 @@ function dragMoveAndRotate(object, event) {
 		}
 		if (!this.object.points) {
 		    this.object.points = new Array();
-		    this.object.points.push(Vector.create([-this.object.width / 2,
-						           -this.object.height / 2]));
-		    this.object.points.push(Vector.create([+this.object.width / 2,
-						           -this.object.height / 2]));
-		    this.object.points.push(Vector.create([-this.object.width / 2,
-						           +this.object.height / 2]));
-		    this.object.points.push(Vector.create([+this.object.width / 2,
-						           +this.object.height / 2]));
+		    this.object.points.push(Vector.create([-this.object.e.width / 2,
+						           -this.object.e.height / 2]));
+		    this.object.points.push(Vector.create([+this.object.e.width / 2,
+						           -this.object.e.height / 2]));
+		    this.object.points.push(Vector.create([-this.object.e.width / 2,
+						           +this.object.e.height / 2]));
+		    this.object.points.push(Vector.create([+this.object.e.width / 2,
+						           +this.object.e.height / 2]));
 		}
 		/*
 		  First determine which point we want to rotate around.  This should
@@ -514,7 +474,6 @@ function dragMoveAndRotate(object, event) {
 function dragFlip(object, event) {
     result = {};
     result.object = object;
-    result.object.style.position = "absolute";
     result.object.image_index = result.object.image_index || 0;
     result.flipped = false;
     result.move = function (mousePos) {
@@ -540,7 +499,6 @@ function snapRotation(object, increment, closeness) {
 function dragArbitraryRotate(object, event) {
     result = {};
     result.object = object;
-    result.object.style.position = "absolute";
     result.mouseFirstPos = mouseCoords(event);
     result.firstRotation = object.currentRotation || 0;
     result.move = function (mousePos) {
@@ -581,19 +539,20 @@ function mouseUp() {
 
 function makeDraggable(item) {
 	if (!item) return;
-	item.onmousedown = function(ev) {
+        var self = item;
+	self.e.onmousedown = function(ev) {
 	    if (getButton(ev) == 'middle' 
 		|| (getButton(ev) == 'left' && ev.shiftKey)) {
-			betterAction = dragFlip(this, ev);
+			betterAction = dragFlip(self, ev);
 		} 
 		else if (getButton(ev) == 'left') {
-			betterAction = dragMoveAndRotate(this, ev);
+			betterAction = dragMoveAndRotate(self, ev);
 		} else {
-			alert("" + this.getCenter().e(1) + " " + this.getCenter().e(2))
+			alert("" + self.getCenter().e(1) + " " + self.getCenter().e(2))
 			//alert("" + mouseCoords(ev).e(1) + " " + mouseCoords(ev).e(2));
 		}
 		if (betterAction) {
-		    this.moveToFront();
+		    self.moveToFront();
 		    mouseMove(ev);
 		}
 		return false;
@@ -619,20 +578,17 @@ function registerObject(name, obj) {
 function createCard(front, back, id) {
     var card = document.createElement("img");
     card.src = front;
-    card.images = [front, back];
-    makeDraggable(card);
-    card.style.position = "absolute";
-    card.style.top = 100;
-    card.style.left = 100;
     card.style.zIndex = 1;
-    card = agnosticImage(card);
+    card = new agImage(card);
+    makeDraggable(card);
+    card.images = [front, back];
     card.baseZ = 0;
     registerObject(id || get_next_id(), card);
     card.throwRandomly();
     if (Math.random() < 0.33) {
     	card.flip();
     }
-    document.body.appendChild(card);
+    document.body.appendChild(card.e);
     if (!id) {
 	rsbp.write("cc" + card.name, front + " " + back);
 	//alert(rsbp.written);
@@ -644,11 +600,6 @@ function createCard(front, back, id) {
 function createPyramid(src, size, id) {
     var pyramid = document.createElement("img");
     pyramid.src = src;
-    pyramid.images = [src];
-    makeDraggable(pyramid);
-    pyramid.style.position = "absolute";
-    pyramid.style.top = 100;
-    pyramid.style.left = 100;
     pyramid.style.zIndex = 200;
     pyramid.onload = function() {
       if (this.width) {
@@ -661,11 +612,13 @@ function createPyramid(src, size, id) {
 				        +this.height / 2]));
       }
     };
-    pyramid = agnosticImage(pyramid);
+    pyramid = new agImage(pyramid);
+    makeDraggable(pyramid);
+    pyramid.images = [src];
     pyramid.baseZ = 200;
     registerObject(id || get_next_id(), pyramid);
     pyramid.throwRandomly();
-    document.body.appendChild(pyramid);
+    document.body.appendChild(pyramid.e);
     if (!id) {
 	rsbp.write("cp" + pyramid.name, src + " " + size);
 	pyramid.serialize();
