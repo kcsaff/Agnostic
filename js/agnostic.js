@@ -505,7 +505,7 @@ function dragMoveAndRotate(object, event) {
       return false;
     }
     result.drop = function () {
-	    snapRotation(this.object, 90, 12);
+	snapRotation(this.object, 90, 12);
     }
     return result;
 }
@@ -558,7 +558,10 @@ function mouseMove(ev) {
 	ev = ev || window.event;
 	var mousePos = mouseCoords(ev);
 	if (betterAction && getButton(ev)) {
-	    return betterAction.move(mousePos);
+	    var result = betterAction.move(mousePos);
+	    if (betterAction.object && !betterAction.object.outgoing) {
+		betterAction.object.serialize();
+	    }
 	}
 }
 
