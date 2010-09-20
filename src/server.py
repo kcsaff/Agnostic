@@ -95,7 +95,7 @@ class Server(BaseHTTPRequestHandler):
             pass
 
 def main():
-    server = HTTPServer(('', 8080), Server)
+    server = HTTPServer(('', 80), Server)
     try:
         #print Server.rsbp.handle('comment..o5-Hello,..o7-World..r')
         #print Server.rsbp.handle('comment..o7-Monkey..o345-Dog..o7-chicken..t2')
