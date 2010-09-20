@@ -38,10 +38,10 @@ var objectsByOrder = new Array();
 var objectsByName = new Object();
 
 function agnosticRSBP() {
-    rsbp = new Object();
-    rsbp.last_transaction = null;
+    var rsbp = new Object();
+    rsbp.last_transaction = undefined;
     rsbp.loop = false;
-    rsbp.written = "";
+    rsbp.written = new Array();
     rsbp.minimum_wait = 100;
     rsbp.initial_timeout = 250; //ms
     rsbp.maximum_timeout = 10000;
@@ -52,27 +52,52 @@ function agnosticRSBP() {
 	    var meta = parts[i].slice(0, ds1);
 	    var payload = parts[i].slice(ds1 + 1);
 	    var ds2 = meta.indexOf("o");
-	    this.last_transaction = meta.slice(1, ds2);
+	    var transaction = parseInt(meta.slice(1, ds2));
+	    if (this.last_transaction && (transaction <= this.last_transaction)) {
+		//clear all!
+		alert("Clearing all data! " + transaction + "<=" + this.last_transaction);
+		this.last_transaction = undefined;
+		for (var i in objectsByName) {
+		    var obj = objectsByName[i];
+		    if (obj && obj.parentNode) {
+		        obj.parentNode.removeChild(obj);
+		    }
+		}
+		objectsByOrder = new Array();
+		objectsByName = new Object();
+	    }
+	    this.last_transaction = transaction;
 	    var objectName = meta.slice(ds2 + 1);
 	    if (objectName) {
 		handleIncoming(objectName, payload);
 	    }
 	}
+	if (this.after) {
+	    this.after();
+	}
 	//alert(data);
     }
+    rsbp.refresh = function() {
+	this.last_transaction = undefined;
+	this.raw_write("..r");
+    }
     rsbp.generate = function() {
-	var result = this.written || "";
-	this.written = "";
+	var result = this.written;
+	this.written = new Array();
+	/*if (result.length) {
+	    alert(result);
+	    }*/
 	for (var i = 0; i < objectsByOrder.length; ++i) {
 	    if (objectsByOrder[i].outgoing) {
-		result += "..o" + objectsByOrder[i].name + "-" + objectsByOrder[i].outgoing;
+		result.push("..o" + objectsByOrder[i].name + "-" + objectsByOrder[i].outgoing);
 	    }
 	}
-	if (this.last_transaction == null) {
-	    return result + "..r";
+	if (this.last_transaction) {
+	    result.push("..t" + this.last_transaction);
 	} else {
-	    return result + "..t" + this.last_transaction;
+	    result.push("..r");
 	}
+	return result.join("");
     }
     rsbp.do_write = function(data) {
 	var http = new XMLHttpRequest();
@@ -102,7 +127,7 @@ function agnosticRSBP() {
 			self.timeout = self.maximum_timeout;
 			demand("timeout", 100, "Connection lost.");
 		    }
-		    if (self.loop) {
+		    if (false && self.loop) {
 			setTimeout(function() {self.poll_forever();}, self.timeout);
 		    }
 		    else {
@@ -125,7 +150,10 @@ function agnosticRSBP() {
 	setTimeout(function() {self.do_poll_forever();}, this.minimum_wait);
     }
     rsbp.write = function(name, payload) {
-	this.written += "..o" + name + "-" + payload;
+	this.written.push("..o" + name + "-" + payload);
+    }
+    rsbp.raw_write = function(data) {
+	this.written.push(data);
     }
     return rsbp;
 }
@@ -160,8 +188,8 @@ function agnosticImage(image) {
 	}
 	image.serialize = function() {
 	    var center = this.getCenter();
-	    this.outgoing = "" + center.e(1) + " " + center.e(2) + " " 
-	        + (this.currentRotation || 0) + " "
+	    this.outgoing = "" + Math.round(center.e(1)) + " " + Math.round(center.e(2)) + " " 
+	        + Math.round(this.currentRotation || 0) + " "
 	        + (this.image_index || 0);
 	}
 	image.throwRandomly = function() {
@@ -185,7 +213,14 @@ function agnosticImage(image) {
 	image.move = function(vector) {
 		this.recenter(this.getCenter().add(vector));
 	}
+	image.moveToFront = function() {
+	    if (moveToEnd(objectsByOrder, this)) {
+	        fixZOrder(objectsByOrder);
+	    }
+	}
 	image.incoming = function(data) {
+	    //return;
+	    this.moveToFront();
 	    if (data == this.outgoing) {
 		this.outgoing = null;
 		return;
@@ -209,7 +244,8 @@ function agnosticImage(image) {
 	    this.src = this.images[this.image_index];
 	}
 	image.setTransformation = function(m) {
-    	var transform = "matrix(" + m.e(1,1) + ", " + m.e(2,1) + ", " + m.e(1,2) + ", " + m.e(2,2) + ", 0, 0)";
+    	var transform = "matrix(" + m.e(1,1) + ", " + m.e(2,1) + ", " 
+                                  + m.e(1,2) + ", " + m.e(2,2) + ", 0, 0)";
         this.style.webkitTransform = transform;
         this.style.MozTransform = transform; 
         this.currentTransformation = m;
@@ -554,9 +590,7 @@ function makeDraggable(item) {
 			//alert("" + mouseCoords(ev).e(1) + " " + mouseCoords(ev).e(2));
 		}
 		if (betterAction) {
-		    if (moveToEnd(objectsByOrder, this)) {
-			fixZOrder(objectsByOrder);
-		    }
+		    this.moveToFront();
 		    mouseMove(ev);
 		}
 		return false;
@@ -598,6 +632,8 @@ function createCard(front, back, id) {
     document.body.appendChild(card);
     if (!id) {
 	rsbp.write("cc" + card.name, front + " " + back);
+	//alert(rsbp.written);
+	card.serialize();
     }
     return card;
 }
@@ -627,6 +663,10 @@ function createPyramid(src, size, id) {
     registerObject(id || get_next_id(), pyramid);
     pyramid.throwRandomly();
     document.body.appendChild(pyramid);
+    if (!id) {
+	rsbp.write("cp" + pyramid.name, src + " " + size);
+	pyramid.serialize();
+    }
     return pyramid;
 }
 
@@ -701,7 +741,7 @@ function _show_demands() {
     var text = null;
     var priority = -1;
     for (var i in _demands) {
-	if (_demandps[i] >= priority && _demands[i]) {
+	if ((_demandps[i] >= priority) && _demands[i]) {
 	    text = _demands[i];
 	    priority = _demandps[i];
 	}
@@ -712,10 +752,9 @@ function _show_demands() {
     if (!text) {
 	_fade_demand();
 	return;
-	if (document.getElementById("demand")) {
-	    document.body.removeChild(document.getElementById("demand"));
-	}
-	return;
+    }
+    if (document.getElementById("demand")) {
+	document.body.removeChild(document.getElementById("demand"));
     }
     var thing = document.createElement("div");
     thing.id = "demand";

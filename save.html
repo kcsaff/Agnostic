@@ -1,0 +1,102 @@
+<html>
+<head>
+
+<!--
+
+# Copyright (C) 2010 by Kevin Saff
+
+# This file is part of Agnostic.
+
+# Agnostic is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# Agnostic is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+
+
+<script src="js/sylvester.src.js" type="text/javascript"></script>
+<script src="js/agnostic.js" type="text/javascript"></script>
+
+</head>
+
+<body>
+
+<form action="" method="GET" onSubmit="loadFromServer(); return false;">
+<label for="nsubmit">Reload from server </label>
+<input type="submit" id="nsubmit" value="now" />
+</form>
+
+<form id="autoform" action="" method="GET" onSubmit="return doAutosave(this.form)">
+<label for="autotime">Auto-save every:</label>
+<input type="text" name="autotext" id="autotime" value="60" />
+<label for="autotime">seconds.</label>
+<input type="submit" value="Go" />
+</form>
+
+<form action="" method="GET" onSubmit="updateSaveGame(); return false;">
+<label for="nsubmit">See current data </label>
+<input type="submit" id="nsubmit" value="now" />
+</form>
+
+<form id="stateform" action="" method="GET" onSubmit="return restoreGame(this.form)">
+<textarea name="gameinput" id="game" rows="25" cols="80"></textarea><br />
+<input type="submit" value="Restore" />
+</form>
+
+
+<script type="text/javascript">
+<!-- 
+ 
+rsbp.poll_forever();
+
+var allObjects = new Object();
+var myTransaction = 0;
+
+function handleIncoming(key, data) {
+   allObjects[key] = [myTransaction++, data];
+}
+
+function loadFromServer() {
+   allObjects = new Object();
+   rsbp.after = updateSaveGame;
+   rsbp.refresh();
+   return false;
+}
+
+function updateSaveGame() {
+   var arr = new Array();
+   for (var key in allObjects) {
+       arr.push([allObjects[key], key]);
+   }
+   arr.sort();
+   var result = new Array();
+   result.push("..n");
+   for (var i in arr) {
+      result.push("..o" + arr[i][1] + "-" + arr[i][0][1]);
+   }
+   document.getElementById("game").value = result.join("");
+   rsbp.after = undefined;
+   return false;
+}
+
+function restoreGame(theform) {
+   var text = document.getElementById("game").value;
+   rsbp.raw_write(text);
+   return false;
+}
+
+ //-->
+ </script>
+
+</body>
+
+</html>

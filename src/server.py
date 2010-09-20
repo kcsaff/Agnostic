@@ -8,28 +8,44 @@ import traceback, sys
 
 class RSBP(object): #Really Simple Bounce Protocol
     SEP = '..'
-    objects = {}
-    transactions = []
     transaction_offset = 1
     
     def __init__(self):
         self.lock = threading.RLock()
+        self.objects = {}
+        self.transactions = []
 
     def next_transaction(self):
         return self.transaction_offset + len(self.transactions)
 
     def handle(self, data):
         print data
+        #raw_input()
         with self.lock:
             for item in data.split(RSBP.SEP)[1:]:
-                if item.startswith('o'): #stOre Object data
+                if item.startswith('n'): #New game, clear all data
+                    #raw_input()
+                    self.objects = {}
+                    #self.transaction_offset += len(self.transactions)
+                    self.transaction_offset = 1
+                    self.transactions = []
+                elif item.startswith('o'): #stOre Object data
                     store = '%st%d%s' % (RSBP.SEP, self.next_transaction(), item)
                     self.objects[item.split('-',1)[0]] = (self.next_transaction(), store)
                     self.transactions.append(store)
                 elif item.startswith('t'): #requesT TransacTions since lasT received
-                    return ''.join(self.transactions[int(item[1:]) + 1 - self.transaction_offset:])
+                    transaction = int(item[1:])
+                    if (self.transaction_offset 
+                          <= transaction 
+                          < self.transaction_offset + len(self.transactions)):
+                        return ''.join(self.transactions[transaction + 1 - self.transaction_offset:])
+                    else: #RefResh - Resend all cuRRent object data
+                        return ''.join([stored for i, stored in sorted(self.objects.values())]) 
                 elif item.startswith('r'): #RefResh - Resend all cuRRent object data
                     return ''.join([stored for i, stored in sorted(self.objects.values())]) 
+                else:
+                    print "Can't handle type %s" % item
+                    raw_input()
             return ''
 
 
