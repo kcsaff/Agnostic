@@ -41,51 +41,42 @@ Clicking the middle button, or left + shift, drag out from the card to flip.<br 
 <script type="text/javascript">
 <!-- 
  
-rsbp.raw_write("..n");
+//rsbp.raw_write("..n");
 
-var suits = ["clubs", "diamonds", "hearts", "spades"];
-var ranks = ["a", "2", "3", "4", "5", "6", "7", "8", "9", "10", "j", "q", "k"];
-for (var suit in suits) {
-   for (var rank in ranks) {
-       createCard("card/" + suits[suit] + "-" + ranks[rank] + "-75.png",
-                  "card/back-blue-75-1.png");
-   }
-}
+createTarotDeck();
 
-createCard("card/joker-r-75.png", "card/back-blue-75-1.png");
-createCard("card/joker-b-75.png", "card/back-blue-75-1.png");
 var colors = ["red", "green", "blue", "yellow"];
 for (var color in colors) {
  for (var i = 0; i < 5; ++i) {
 /*
-  createPyramid("card/" + colors[color] + "-pyramid.png", 1.00);
-  createPyramid("card/" + colors[color] + "-pyramid.png", 0.75);
-  createPyramid("card/" + colors[color] + "-pyramid.png", 0.50);
+  createPyramid("pyramid/" + colors[color] + "-pyramid.png", 1.00);
+  createPyramid("pyramid/" + colors[color] + "-pyramid.png", 0.75);
+  createPyramid("pyramid/" + colors[color] + "-pyramid.png", 0.50);
 */
-  createPyramid("card/" + colors[color] + "-pyramid.png", 1.00);
-  createPyramid("card/" + colors[color] + "-pyramid-medium.png", 1.00);
-  createPyramid("card/" + colors[color] + "-pyramid-small.png", 1.00);
+  createPyramid("pyramid/" + colors[color] + "-pyramid.png", 1.00);
+  createPyramid("pyramid/" + colors[color] + "-pyramid-medium.png", 1.00);
+  createPyramid("pyramid/" + colors[color] + "-pyramid-small.png", 1.00);
  }
 }
 
 go = function(blah) {
     undemand("questions");
-    rsbp.poll_forever();
+    //rsbp.poll_forever();
     return false;
 }
 
 //rsbp.minimum_wait = 1000;
 //rsbp.poll_forever();
-rsbp.poll();
+//rsbp.poll();
 
 demand("questions", 1, '\
 <form id="questions" action="" method="GET" onSubmit="return go(this.form)">\
 Select a color:\
 <table align="center"><tr>\
-<td><label for="rred"><img src="card/red-pyramid.png" /></label></td>\
-<td><label for="ryellow"><img src="card/yellow-pyramid.png" /></label></td>\
-<td><label for="rgreen"><img src="card/green-pyramid.png" /></label></td>\
-<td><label for="rblue"><img src="card/blue-pyramid.png" /></label></td>\
+<td><label for="rred"><img src="pyramid/red-pyramid.png" /></label></td>\
+<td><label for="ryellow"><img src="pyramid/yellow-pyramid.png" /></label></td>\
+<td><label for="rgreen"><img src="pyramid/green-pyramid.png" /></label></td>\
+<td><label for="rblue"><img src="pyramid/blue-pyramid.png" /></label></td>\
 </tr><tr align="center">\
 <td><input type="radio" name="color" id="rred" value="red" /></td>\
 <td><input type="radio" name="color" id="ryellow" value="yellow" /></td>\

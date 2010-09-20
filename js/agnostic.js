@@ -708,6 +708,38 @@ function handleIncoming(name, data) {
     }
 }
 
+function createStandardDeck() {
+    var suits = "clubs diamonds hearts spades".split(" ");
+    var ranks = "a 2 3 4 5 6 7 8 9 10 j q k".split(" ");
+    for (var suit in suits) {
+	for (var rank in ranks) {
+	    createCard("card/" + suits[suit] + "-" + ranks[rank] + "-75.png",
+		       "card/back-blue-75-1.png");
+	}
+    }
+    createCard("card/joker-r-75.png", "card/back-blue-75-1.png");
+    createCard("card/joker-b-75.png", "card/back-blue-75-1.png");
+}
+
+function createTarotDeck() {
+    var suits = "wa sw cu pe".split(" ");
+    var ranks = "ac 02 03 04 05 06 07 08 09 10 pa kn qu ki".split(" ");
+    for (var suit in suits) {
+	for (var rank in ranks) {
+	    createCard("tarot/" + suits[suit] + ranks[rank] + ".png",
+		       "tarot/back.png");
+	}
+    }
+
+    for (var i = 0; i < 22; ++i) {
+	var s = "" + i;
+	if (s.length < 2) {
+	    s = "0" + s;
+	}
+	createCard("tarot/ar" + s + ".png", "tarot/back.png");
+    }
+}
+
 var _demands = new Object();
 var _demandps = new Object();
 
