@@ -45,7 +45,7 @@ class RSBP(object): #Really Simple Bounce Protocol
                     return ''.join([stored for i, stored in sorted(self.objects.values())]) 
                 else:
                     print "Can't handle type %s" % item
-                    raw_input()
+                    #raw_input()
             return ''
 
 
