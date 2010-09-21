@@ -37,6 +37,19 @@ document.onmouseup = mouseUp;
 var objectsByOrder = new Array();
 var objectsByName = new Object();
 
+var safeAlertCount = 5;
+function safeAlert(text) {
+    if (safeAlertCount-- > 0) {
+	alert(text);
+    }
+}
+
+function debug(text) {
+    if (document.getElementById("debug")) {
+	document.getElementById("debug").innerHTML = text;
+    }
+}
+
 function agnosticRSBP() {
     var rsbp = new Object();
     rsbp.last_transaction = undefined;
@@ -45,6 +58,22 @@ function agnosticRSBP() {
     rsbp.minimum_wait = 100;
     rsbp.initial_timeout = 250; //ms
     rsbp.maximum_timeout = 10000;
+    rsbp.server = null;
+    rsbp.first_connection = null;
+    rsbp.last_connection = null;
+    rsbp.unsent_data = null;
+    rsbp.isConnected = function() {
+	return this.last_connection && (this.getDisconnectionTime() < 5.0);
+    }
+    rsbp.hasConnected = function() {
+	return !!this.first_connection;
+    }
+    rsbp.getConnectionTime = function() {
+	return ((new Date()).getTime() - this.first_connection) / 1e3;
+    }
+    rsbp.getDisconnectionTime = function() {
+	return Math.round(((new Date()).getTime() - this.last_connection) / 1e3);
+    }
     rsbp.apply = function(data) {
 	var parts = data.split("..");
 	for (var i = 1;/*ignore before first separator*/ i < parts.length; ++i) {
@@ -84,9 +113,6 @@ function agnosticRSBP() {
     rsbp.generate = function() {
 	var result = this.written;
 	this.written = new Array();
-	/*if (result.length) {
-	    alert(result);
-	    }*/
 	for (var i = 0; i < objectsByOrder.length; ++i) {
 	    if (objectsByOrder[i].outgoing) {
 		result.push("..o" + objectsByOrder[i].name + "-" + objectsByOrder[i].outgoing);
@@ -101,22 +127,29 @@ function agnosticRSBP() {
     }
     rsbp.do_write = function(data) {
 	var http = new XMLHttpRequest();
-	http.open("POST", "RSBP", true);
+	var rsbp = this;
+	data = data || this.unsent_data;
+	this.unsent_data = data;
+	http.open("POST", rsbp.server || "RSBP", true);
 	http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	http.setRequestHeader("Content-length", data.length);
 	http.setRequestHeader("Connection", "close");
 	http.onreadystatechange = function() {
 	    if (http.readyState == 4) {
 		if (http.status == 200) {
+		    rsbp.unsent_data = null;
 		    rsbp.timeout = null;
-		    undemand("timeout");
+		    rsbp.last_connection = (new Date()).getTime();
+		    if (!rsbp.first_connection) {
+			rsbp.first_connection = rsbp.last_connection;
+		    }
+		    //undemand("timeout");
 		    rsbp.apply(http.responseText);
                     if (rsbp.loop) {
 			rsbp.poll_forever();
 		    }
 		} else {
 		    var self = rsbp;
-		    var data = data;
 		    if (!self.timeout) {
 			self.timeout = self.initial_timeout;
 		    }
@@ -125,13 +158,13 @@ function agnosticRSBP() {
 		    }
 		    if (self.timeout > self.maximum_timeout) {
 			self.timeout = self.maximum_timeout;
-			demand("timeout", 100, "Connection lost.");
+			//demand("timeout", 100, "Connection lost.");
 		    }
 		    if (false && self.loop) {
 			setTimeout(function() {self.poll_forever();}, self.timeout);
 		    }
 		    else {
-			setTimeout(function() {self.do_write(data);}, self.timeout);
+			setTimeout(function() {self.do_write();}, self.timeout);
 		    }
 		}
 	    } 
@@ -220,7 +253,7 @@ agImage.prototype = {
     moveToFront: function() {
         if (moveToEnd(objectsByOrder, this)) {
 	    fixZOrder(objectsByOrder);
-	}
+	} //else {safeAlert("huh?");}
     },
     incoming: function(data) {
         this.moveToFront();
@@ -734,6 +767,10 @@ function _show_demands() {
 	    priority = _demandps[i];
 	}
     }
+    if (text && (text == _demands[""])) {
+	return;
+    }
+    _demands[""] = text;
     if (document.getElementById("demandinner")) {
 	document.body.removeChild(document.getElementById("demandinner"));
     }
@@ -767,4 +804,54 @@ function _show_demands() {
     inner.style.left = 0;
     inner.style.top = window.innerHeight / 2 - 150;
     document.body.appendChild(inner);
+}
+
+function joinGameInProgress() {
+    undemand("connection"); //drop out of connection screen.
+}
+
+var count = 0;
+
+function mainTimer() {
+    debug(count++);
+    if (!rsbp.isConnected()) {
+	demandConnectionScreen();
+	//safeAlert("disconnected");
+    }
+    if (document.getElementById("connectionStatus")) {
+	var connectionString = "";
+	if (rsbp.isConnected()) {
+	    connectionString += "Connected to " + (rsbp.server || "default server") + ".";
+	    joinGameOption = true;
+	} else if (rsbp.hasConnected()) {
+	    connectionString += "Disconnected from " + (rsbp.server || "default server") 
+		+ " for " + rsbp.getDisconnectionTime() + " seconds.";
+	    connectionString += "(Timeout: " + rsbp.timeout + " mseconds)";
+	} else {
+	    connectionString += "Connecting to " + (rsbp.server || "default server") + "...";
+	}
+	document.getElementById("connectionStatus").innerHTML = connectionString;
+    }
+    if (document.getElementById("gameOptions")) {
+	var optionString = "";
+	if (rsbp.isConnected()) {
+	    optionString += '\
+<form>\
+<input type="button" value="Join game in progress" onClick="joinGameInProgress()" />\
+</form>\
+';
+	}
+	document.getElementById("gameOptions").innerHTML = optionString;
+    }
+}
+
+setInterval(mainTimer, 1e3);
+
+demandConnectionScreen = function() {
+    demand("connection", 2, '\
+<div id="connectionStatus">\
+Please wait: determining connection status.\
+</div>\
+<div id="gameOptions"></div>\
+');
 }

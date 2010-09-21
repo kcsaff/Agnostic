@@ -36,6 +36,7 @@ Drag left mouse button in center of card to move.<br />
 Drag around edge of card to move and rotate.<br />
 Clicking the middle button, or left + shift, drag out from the card to flip.<br />
 </div>
+<div id="debug"> </div>
 
 
 <script type="text/javascript">
@@ -64,11 +65,14 @@ go = function(blah) {
     rsbp.poll_forever();
     return false;
 }
-
+ 
 //rsbp.minimum_wait = 1000;
-//rsbp.poll_forever();
+rsbp.poll_forever();
 //rsbp.poll();
 
+demandConnectionScreen();
+
+/*
 demand("questions", 1, '\
 <form id="questions" action="" method="GET" onSubmit="return go(this.form)">\
 Select a color:\
@@ -91,6 +95,7 @@ Select a color:\
 <input type="submit" value="Go" />\
 </form>\
 ');
+*/
 
  //-->
  </script>
