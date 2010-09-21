@@ -12,8 +12,8 @@ class RSBP(object): #Really Simple Bounce Protocol
     
     def __init__(self):
         self.lock = threading.RLock()
-        self.objects = {}
-        self.transactions = []
+        self.objects = {'': [1, '..t1o-']}
+        self.transactions = ['..t1o-']
 
     def next_transaction(self):
         return self.transaction_offset + len(self.transactions)

@@ -64,14 +64,14 @@ function GameRecord() {
     this.transaction = 0;
 }
 GameRecord.prototype = {
-    incoming: function(key, data) {
+    incoming: function(key, data, maintain_pending) {
 	//debug('handling ' + key + '-' + data);
 	if (!this.pending[key]) {
 	    this.objects[key] = [this.transaction++, data];
 	    if (this === clientGame) {
 		handleIncoming(key, data);
 	    }
-	} else if (this.objects[key][1] == data) {
+	} else if (!maintain_pending && this.objects[key][1] == data) {
 	    this.pending[key] = false;
 	}
     },
@@ -80,26 +80,28 @@ GameRecord.prototype = {
 	this.pending[key] = true;
     },
     join: function() {
-	clearBoard();
-	clientGame = this;
+	if (clientGame === serverGame) {return;}
+	changeClientGame(this);
+    },
+    _join: function() {
 	arr = new Array();
 	for (var key in this.objects) {
 	    arr.push([this.objects[key], key]);
 	}
-	arr.sort(function(a,b){return a[0]-b[0];});	
-	//safeAlert(arr.join(':'));
+	arr.sort(function(a,b){return a[0][0]-b[0][0];});	
 	for (var i in arr) {
-	    this.incoming(arr[i][1], arr[i][0][1]);
+	    this.incoming(arr[i][1], arr[i][0][1], true);
 	}
     },
     generate: function(all) {
 	var arr = new Array();
 	for (var key in this.objects) {
+	    //if (key == '') {safeAlert("" + this.pending[key] + " " + this.objects[key]);}
 	    if (this.pending[key] || all) {
 		arr.push([this.objects[key], key]);
 	    }
 	}
-	arr.sort(function(a,b){return a[0]-b[0];});
+	arr.sort(function(a,b){return a[0][0]-b[0][0];});
 	var result = new Array();
 	if (all) {
 	    result.push("..n..o-new");
@@ -110,30 +112,54 @@ GameRecord.prototype = {
 	return result.join("");
     },
     upload: function() {
-	serverGame = this;
+	changeServerGame(this);
 	rsbp.raw_write(this.generate(true));
     }
 }
-
-GameRecord.fromServer = function() {
-    return 1;
+GameRecord.create = function() {
+    var game = new GameRecord();
+    game.outgoing('', 'new');
+    return game;
 }
 
-function clearBoard() {
-    if (!clientGame) {return;}
-    oldGames.push(clientGame.generate(true));
-    //clear all!
-    alert("Clearing all data!");
-    //this.last_transaction = undefined;
+function ensureGameSaved(game) {
+    if (!game) {return;}
+    var text = game.generate(true);
+    var found = false;
+    for (var i in oldGames) {
+	if (oldGames[i] == text) {
+	    found = true;
+	}
+    }
+    if (!found) {
+	oldGames.push(text);
+    }
+}
+
+function changeServerGame(game) {
+    if (game === serverGame) {return;}
+    ensureGameSaved(serverGame);
+    serverGame = game;
+}
+
+function changeClientGame(game) {
+    if (game === clientGame) {return;}
+    ensureGameSaved(clientGame);
+
+    if (clientGame) {
+	alert("Clearing all client data!");
+    }
     for (var i in objectsByName) {
 	var obj = objectsByName[i];
-	if (obj && obj.parentNode) {
-	    obj.parentNode.removeChild(obj);
+	if (obj && obj.e && obj.e.parentNode) {
+	    obj.e.parentNode.removeChild(obj.e);
 	}
     }
     objectsByOrder = new Array();
     objectsByName = new Object();  
-    clientGame = new GameRecord();
+
+    clientGame = game;
+    game._join();
 }
 
 function agnosticRSBP() {
@@ -161,7 +187,8 @@ function agnosticRSBP() {
 	return Math.round(((new Date()).getTime() - this.last_connection) / 1e3);
     }
     rsbp.apply = function(data) {
-	if (data) {
+	if (data && data != '..t1o-') {
+	    //debug('received: ' + data);
 	    //safeAlert(data);
 	}
 	var parts = data.split("..");
@@ -171,24 +198,17 @@ function agnosticRSBP() {
 	    var payload = parts[i].slice(ds1 + 1);
 	    var ds2 = meta.indexOf("o");
 	    var transaction = parseInt(meta.slice(1, ds2));
-	    if (this.last_transaction && (transaction <= this.last_transaction)) {
-		if (serverGame) {
-		    if (serverGame === clientGame) {
-			clearBoard();
-			serverGame = clientGame;
-		    } else {
-			oldGames.push(serverGame.generate(true));
-			serverGame = null;
-		    }
-		}
-	    }
-	    if (!serverGame) {
-		serverGame = new GameRecord();
-	    }
 	    this.last_transaction = transaction;
 	    var objectName = meta.slice(ds2 + 1);
-	    if (objectName) {
+	    if (serverGame && objectName) {
+		if (!clientGame) {
+		    clientGame = serverGame;
+		}
 		serverGame.incoming(objectName, payload);
+	    } else if (payload == 'new') {
+		changeServerGame(new GameRecord());
+	    } else if (!payload) {
+		changeServerGame(null);
 	    }
 	}
 	if (this.after) {
@@ -218,6 +238,7 @@ function agnosticRSBP() {
     rsbp.do_write = function(data) {
 	var http = new XMLHttpRequest();
 	var rsbp = this;
+	//if (data && data != '..r') {debug('sent: ' + data);}
 	data = data || this.unsent_data;
 	this.unsent_data = data;
 	http.open("POST", rsbp.server || "RSBP", true);
@@ -717,7 +738,7 @@ function createCard(front, back, id) {
 
 function createPyramid(src, size, id) {
     if (id) {
-	debug('creating pyramid ' + id);
+	//debug('creating pyramid ' + id);
     }
     var pyramid = document.createElement("img");
     pyramid.src = src;
@@ -900,10 +921,10 @@ function _show_demands() {
     var inner = document.createElement("center");
     inner.id = "demandinner";
     inner.innerHTML = text;
-    inner.style.position = "relative";
+    inner.style.position = "absolute";
     inner.style.zIndex = 10001;
     inner.width = window.innerWidth;
-    //inner.style.minWidth = window.innerWidth;
+    inner.style.minWidth = window.innerWidth;
     inner.style.left = 0;
     document.body.appendChild(inner);
     inner.style.top = (window.innerHeight / 2 - inner.height / 2) + 'px';
@@ -961,8 +982,8 @@ onSubmit="return createNewServerGame(this)">';
 }
 
 function createNewServerGame(form) {
-    serverGame = new GameRecord();
-    clientGame = serverGame;
+    changeClientGame(GameRecord.create());
+    changeServerGame(clientGame);
     demand("creating", 1, "Please wait, building game...");
     undemand("create");
     for (var i in form.item) {
@@ -982,7 +1003,9 @@ function joinGameInProgress() {
 var count = 0;
 
 function mainTimer() {
-    debug(count++, true);
+    /*debug(count++, true);
+    debug(serverGame);
+    debug(clientGame);*/
     if (!rsbp.isConnected()) {
 	demandConnectionScreen();
 	//safeAlert("disconnected");
