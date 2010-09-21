@@ -42,33 +42,12 @@ Clicking the middle button, or left + shift, drag out from the card to flip.<br 
 <script type="text/javascript">
 <!-- 
  
-rsbp.raw_write("..n");
-
-createTarotDeck();
-
-var colors = ["red", "green", "blue", "yellow"];
-for (var color in colors) {
- for (var i = 0; i < 5; ++i) {
-/*
-  createPyramid("pyramid/" + colors[color] + "-pyramid.png", 1.00);
-  createPyramid("pyramid/" + colors[color] + "-pyramid.png", 0.75);
-  createPyramid("pyramid/" + colors[color] + "-pyramid.png", 0.50);
-*/
-  createPyramid("pyramid/" + colors[color] + "-pyramid.png", 1.00);
-  createPyramid("pyramid/" + colors[color] + "-pyramid-medium.png", 1.00);
-  createPyramid("pyramid/" + colors[color] + "-pyramid-small.png", 1.00);
- }
-}
-
 go = function(blah) {
     undemand("questions");
-    rsbp.poll_forever();
     return false;
 }
- 
-//rsbp.minimum_wait = 1000;
+
 rsbp.poll_forever();
-//rsbp.poll();
 
 demandConnectionScreen();
 

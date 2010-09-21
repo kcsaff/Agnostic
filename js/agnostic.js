@@ -44,10 +44,96 @@ function safeAlert(text) {
     }
 }
 
-function debug(text) {
+function debug(text, refresh) {
     if (document.getElementById("debug")) {
-	document.getElementById("debug").innerHTML = text;
+	if (refresh != undefined && refresh) {
+	    document.getElementById("debug").innerHTML = text;
+	} else {
+	    document.getElementById("debug").innerHTML += '<br />' + text;
+	}
     }
+}
+
+var oldGames = new Array();
+var serverGame = null;
+var clientGame = null;
+
+function GameRecord() {
+    this.objects = new Object();
+    this.pending = new Object();
+    this.transaction = 0;
+}
+GameRecord.prototype = {
+    incoming: function(key, data) {
+	//debug('handling ' + key + '-' + data);
+	if (!this.pending[key]) {
+	    this.objects[key] = [this.transaction++, data];
+	    if (this === clientGame) {
+		handleIncoming(key, data);
+	    }
+	} else if (this.objects[key][1] == data) {
+	    this.pending[key] = false;
+	}
+    },
+    outgoing: function(key, data) {
+	this.objects[key] = [this.transaction++, data];
+	this.pending[key] = true;
+    },
+    join: function() {
+	clearBoard();
+	clientGame = this;
+	arr = new Array();
+	for (var key in this.objects) {
+	    arr.push([this.objects[key], key]);
+	}
+	arr.sort(function(a,b){return a[0]-b[0];});	
+	//safeAlert(arr.join(':'));
+	for (var i in arr) {
+	    this.incoming(arr[i][1], arr[i][0][1]);
+	}
+    },
+    generate: function(all) {
+	var arr = new Array();
+	for (var key in this.objects) {
+	    if (this.pending[key] || all) {
+		arr.push([this.objects[key], key]);
+	    }
+	}
+	arr.sort(function(a,b){return a[0]-b[0];});
+	var result = new Array();
+	if (all) {
+	    result.push("..n..o-new");
+	}
+	for (var i in arr) {
+	    result.push("..o" + arr[i][1] + "-" + arr[i][0][1]);
+	}
+	return result.join("");
+    },
+    upload: function() {
+	serverGame = this;
+	rsbp.raw_write(this.generate(true));
+    }
+}
+
+GameRecord.fromServer = function() {
+    return 1;
+}
+
+function clearBoard() {
+    if (!clientGame) {return;}
+    oldGames.push(clientGame.generate(true));
+    //clear all!
+    alert("Clearing all data!");
+    //this.last_transaction = undefined;
+    for (var i in objectsByName) {
+	var obj = objectsByName[i];
+	if (obj && obj.parentNode) {
+	    obj.parentNode.removeChild(obj);
+	}
+    }
+    objectsByOrder = new Array();
+    objectsByName = new Object();  
+    clientGame = new GameRecord();
 }
 
 function agnosticRSBP() {
@@ -75,6 +161,9 @@ function agnosticRSBP() {
 	return Math.round(((new Date()).getTime() - this.last_connection) / 1e3);
     }
     rsbp.apply = function(data) {
+	if (data) {
+	    //safeAlert(data);
+	}
 	var parts = data.split("..");
 	for (var i = 1;/*ignore before first separator*/ i < parts.length; ++i) {
 	    var ds1 = parts[i].indexOf("-");
@@ -83,22 +172,23 @@ function agnosticRSBP() {
 	    var ds2 = meta.indexOf("o");
 	    var transaction = parseInt(meta.slice(1, ds2));
 	    if (this.last_transaction && (transaction <= this.last_transaction)) {
-		//clear all!
-		alert("Clearing all data! " + transaction + "<=" + this.last_transaction);
-		this.last_transaction = undefined;
-		for (var i in objectsByName) {
-		    var obj = objectsByName[i];
-		    if (obj && obj.parentNode) {
-		        obj.parentNode.removeChild(obj);
+		if (serverGame) {
+		    if (serverGame === clientGame) {
+			clearBoard();
+			serverGame = clientGame;
+		    } else {
+			oldGames.push(serverGame.generate(true));
+			serverGame = null;
 		    }
 		}
-		objectsByOrder = new Array();
-		objectsByName = new Object();
+	    }
+	    if (!serverGame) {
+		serverGame = new GameRecord();
 	    }
 	    this.last_transaction = transaction;
 	    var objectName = meta.slice(ds2 + 1);
 	    if (objectName) {
-		handleIncoming(objectName, payload);
+		serverGame.incoming(objectName, payload);
 	    }
 	}
 	if (this.after) {
@@ -106,20 +196,20 @@ function agnosticRSBP() {
 	}
 	//alert(data);
     }
-    rsbp.refresh = function() {
+    /*rsbp.refresh = function() {
 	this.last_transaction = undefined;
 	this.raw_write("..r");
-    }
+	}*/
     rsbp.generate = function() {
 	var result = this.written;
 	this.written = new Array();
-	for (var i = 0; i < objectsByOrder.length; ++i) {
-	    if (objectsByOrder[i].outgoing) {
-		result.push("..o" + objectsByOrder[i].name + "-" + objectsByOrder[i].outgoing);
+	if (serverGame) {
+	    result.push(serverGame.generate(false));
+	    if (this.last_transaction) {
+		result.push("..t" + this.last_transaction);
+	    } else {
+		result.push("..r");
 	    }
-	}
-	if (this.last_transaction) {
-	    result.push("..t" + this.last_transaction);
 	} else {
 	    result.push("..r");
 	}
@@ -175,19 +265,19 @@ function agnosticRSBP() {
 	return;
     }
     rsbp.poll = function() {
-	this.do_write(this.generate());
+	this.do_write(this.generate(false));
     }
     rsbp.poll_forever = function() {
 	this.loop = true;
 	var self = this;
 	setTimeout(function() {self.poll();}, this.minimum_wait);
     }
-    rsbp.write = function(name, payload) {
+    /*rsbp.write = function(name, payload) {
 	this.written.push("..o" + name + "-" + payload);
     }
     rsbp.raw_write = function(data) {
 	this.written.push(data);
-    }
+	}*/
     return rsbp;
 }
 
@@ -225,9 +315,10 @@ agImage.prototype = {
     },
     serialize:function() {
         var center = this.getCenter();
-        this.outgoing = "" + Math.round(center.e(1)) + " " + Math.round(center.e(2)) + " " 
-	        + Math.round(this.currentRotation || 0) + " "
-	        + (this.image_index || 0);
+        clientGame.outgoing(this.name,
+			    "" + Math.round(center.e(1)) + " " + Math.round(center.e(2)) + " " 
+			    + Math.round(this.currentRotation || 0) + " "
+			    + (this.image_index || 0));
     },
     throwRandomly: function() {
         this.recenter(randomLocation());
@@ -257,12 +348,6 @@ agImage.prototype = {
     },
     incoming: function(data) {
         this.moveToFront();
-        if (data == this.outgoing) {
-            this.outgoing = null;
-            return;
-	} else if (this.outgoing) {
-	    return;
-	}
 	var nums = data.split(" ", 4);
 	var center = Vector.create([parseFloat(nums[0]), parseFloat(nums[1])]);
 	var degrees = parseFloat(nums[2]);
@@ -550,7 +635,7 @@ function mouseMove(ev) {
 	var mousePos = mouseCoords(ev);
 	if (betterAction && getButton(ev)) {
 	    var result = betterAction.move(mousePos);
-	    if (betterAction.object && !betterAction.object.outgoing) {
+	    if (betterAction.object) {
 		betterAction.object.serialize();
 	    }
 	}
@@ -623,7 +708,7 @@ function createCard(front, back, id) {
     }
     document.body.appendChild(card.e);
     if (!id) {
-	rsbp.write("cc" + card.name, front + " " + back);
+	clientGame.outgoing("cc" + card.name, front + " " + back);
 	//alert(rsbp.written);
 	card.serialize();
     }
@@ -631,6 +716,9 @@ function createCard(front, back, id) {
 }
 
 function createPyramid(src, size, id) {
+    if (id) {
+	debug('creating pyramid ' + id);
+    }
     var pyramid = document.createElement("img");
     pyramid.src = src;
     pyramid.style.zIndex = 200;
@@ -653,7 +741,7 @@ function createPyramid(src, size, id) {
     pyramid.throwRandomly();
     document.body.appendChild(pyramid.e);
     if (!id) {
-	rsbp.write("cp" + pyramid.name, src + " " + size);
+	clientGame.outgoing("cp" + pyramid.name, src + " " + size);
 	pyramid.serialize();
     }
     return pyramid;
@@ -723,6 +811,21 @@ function createTarotDeck() {
 	    s = "0" + s;
 	}
 	createCard("tarot/ar" + s + ".png", "tarot/back.png");
+    }
+}
+
+function createPyramidStash(color) {
+    for (var i = 0; i < 5; ++i) {
+	createPyramid("pyramid/" + color + "-pyramid.png", 1.00);
+	createPyramid("pyramid/" + color + "-pyramid-medium.png", 1.00);
+	createPyramid("pyramid/" + color + "-pyramid-small.png", 1.00);
+    }
+}
+
+function createPyramidStashes(color) {
+    var colors = "red yellow green blue".split(" ");
+    for (var i in colors) {
+	createPyramidStash(colors[i]);
     }
 }
 
@@ -797,23 +900,89 @@ function _show_demands() {
     var inner = document.createElement("center");
     inner.id = "demandinner";
     inner.innerHTML = text;
-    inner.style.position = "absolute";
+    inner.style.position = "relative";
     inner.style.zIndex = 10001;
     inner.width = window.innerWidth;
-    inner.style.minWidth = window.innerWidth;
+    //inner.style.minWidth = window.innerWidth;
     inner.style.left = 0;
-    inner.style.top = window.innerHeight / 2 - 150;
     document.body.appendChild(inner);
+    inner.style.top = (window.innerHeight / 2 - inner.height / 2) + 'px';
+    //document.body.appendChild(inner);
+}
+
+function wantCards() {
+    return '\
+<br /><label for="wantStandardDeck"><img src="card/spades-a-75.png" /></label><br />\
+<input type="checkbox" name="item" id="wantStandardDeck" value="createStandardDeck()">\
+Add a deck of standard playing cards.</input><br />\
+';
+}
+
+function wantTarot() {
+    return '\
+<br /><label for="wantTarotDeck"><img src="tarot/ar00.png" /></label><br />\
+<input type="checkbox" name="item" id="wantTarotDeck" value="createTarotDeck()">\
+Add a deck of tarot cards.</input><br />\
+';
+}
+
+function wantPyramids() {
+    return '\
+<table><tr align="center">\
+<td><label for="wantRedPyr"><img src="pyramid/red-pyramid.png" /></label></td>\
+<td><label for="wantGreenPyr"><img src="pyramid/green-pyramid.png" /></label></td>\
+<td><label for="wantBluePyr"><img src="pyramid/blue-pyramid.png" /></label></td>\
+<td><label for="wantYellowPyr"><img src="pyramid/yellow-pyramid.png" /></label></td>\
+</tr><tr align="center">\
+<td><input type="checkbox" name="item" id="wantRedPyr" value="createPyramidStash(\'red\')">\
+</input></td>\
+<td><input type="checkbox" name="item" id="wantGreenPyr" value="createPyramidStash(\'green\')">\
+</input></td>\
+<td><input type="checkbox" name="item" id="wantBluePyr" value="createPyramidStash(\'blue\')">\
+</input></td>\
+<td><input type="checkbox" name="item" id="wantYellowPyr" value="createPyramidStash(\'yellow\')">\
+</input></td>\
+</tr></table>\
+Add some pyramid stashes.<br />\
+';
+}
+
+function startNewServerGame() {
+    var wants = '\
+Add some game elements to begin.\
+<form id="questions" action="" method="GET" \
+onSubmit="return createNewServerGame(this)">';
+    wants += wantCards();
+    wants += wantTarot();
+    wants += wantPyramids();
+    wants += '<br /><input type="submit" value="Done." />';
+    demand("create", 1, wants);
+    undemand("connection");
+}
+
+function createNewServerGame(form) {
+    serverGame = new GameRecord();
+    clientGame = serverGame;
+    demand("creating", 1, "Please wait, building game...");
+    undemand("create");
+    for (var i in form.item) {
+	if (form.item[i].checked) {
+	    eval(form.item[i].value); //yikes!
+	}
+    }
+    undemand("creating");
+    return false;
 }
 
 function joinGameInProgress() {
+    serverGame.join();
     undemand("connection"); //drop out of connection screen.
 }
 
 var count = 0;
 
 function mainTimer() {
-    debug(count++);
+    debug(count++, true);
     if (!rsbp.isConnected()) {
 	demandConnectionScreen();
 	//safeAlert("disconnected");
@@ -835,11 +1004,20 @@ function mainTimer() {
     if (document.getElementById("gameOptions")) {
 	var optionString = "";
 	if (rsbp.isConnected()) {
-	    optionString += '\
+	    if (serverGame) {
+		optionString += '\
 <form>\
 <input type="button" value="Join game in progress" onClick="joinGameInProgress()" />\
 </form>\
 ';
+	    } else {
+		optionString += '<br />\
+<form>\
+<label for="startNew">No game in progress:</label>&nbsp;&nbsp;\
+<input type="button" value="Start new game" id="startNew" onClick="startNewServerGame()" />\
+</form>\
+';
+	    }
 	}
 	document.getElementById("gameOptions").innerHTML = optionString;
     }
