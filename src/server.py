@@ -85,7 +85,8 @@ class Server(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             length = cgi.parse_header(self.headers.getheader('content-length'))
-            result = self.rsbp.handle(self.rfile.read(int(length[0])))
+            result = self.rsbp.handle(self.rfile.readline().rstrip('\n'))
+            #result = self.rsbp.handle(self.rfile.read(int(length[0])))
             self.send_response(200)
             self.send_header('Content-type', 'application/x-www-form-urlencoded')
             self.end_headers()

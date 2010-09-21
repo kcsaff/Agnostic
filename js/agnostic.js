@@ -54,7 +54,7 @@ function debug(text, refresh) {
     }
 }
 
-var oldGames = new Array();
+var oldGames = new Object();
 var serverGame = null;
 var clientGame = null;
 
@@ -131,15 +131,8 @@ GameRecord.create = function() {
 
 function ensureGameSaved(game, reason) {
     if (!game) {return;}
-    var text = game.generate(true);
-    var found = false;
-    for (var i in oldGames) {
-	if (oldGames[i][2] == text) {
-	    found = true;
-	}
-    }
-    if (!found) {
-	oldGames.push([game.getId(), reason, text]);
+    if (!oldGames[game.getId()]) {
+	oldGames[game.getId()] = [reason, game.generate(true)];
     }
 }
 
@@ -248,6 +241,7 @@ function agnosticRSBP() {
 	} else {
 	    result.push("..r");
 	}
+	result.push("\n");
 	return result.join("");
     }
     rsbp.do_write = function(data) {
@@ -963,24 +957,20 @@ Add a deck of tarot cards.</input><br />\
 }
 
 function wantPyramids() {
-    return '\
-<table><tr align="center">\
-<td><label for="wantRedPyr"><img src="pyramid/red-pyramid.png" /></label></td>\
-<td><label for="wantGreenPyr"><img src="pyramid/green-pyramid.png" /></label></td>\
-<td><label for="wantBluePyr"><img src="pyramid/blue-pyramid.png" /></label></td>\
-<td><label for="wantYellowPyr"><img src="pyramid/yellow-pyramid.png" /></label></td>\
-</tr><tr align="center">\
-<td><input type="checkbox" name="item" id="wantRedPyr" value="createPyramidStash(\'red\')">\
-</input></td>\
-<td><input type="checkbox" name="item" id="wantGreenPyr" value="createPyramidStash(\'green\')">\
-</input></td>\
-<td><input type="checkbox" name="item" id="wantBluePyr" value="createPyramidStash(\'blue\')">\
-</input></td>\
-<td><input type="checkbox" name="item" id="wantYellowPyr" value="createPyramidStash(\'yellow\')">\
-</input></td>\
-</tr></table>\
-Add some pyramid stashes.<br />\
-';
+    var result = new Array();
+    var colors = "red green blue yellow purple orange".split(" ");
+    result.push('<table><tr align="center">');
+    for (var i in colors) {
+	result.push('<td><label for="Pyr' + i + '"><img src="pyramid/' 
+		    + colors[i] + '-pyramid.png" /></label></td>');
+    }
+    result.push('</tr><tr align="center">');
+    for (var i in colors) {
+	result.push('<td><input type="checkbox" name="item" id="Pyr' + i 
+		    + '" value="createPyramidStash(\'' + colors[i] + '\')"></input></td>');
+    }
+    result.push('</tr></table>Add some pyramid stashes.<br />');
+    return result.join('');
 }
 
 function startNewServerGame() {
@@ -1101,12 +1091,24 @@ function mainTimer() {
 </form>\
 ';
 	}
-	for (var i in oldGames) {
-	    var id = oldGames[i][0];
-	    var reason = oldGames[i][1];
-	    var text = oldGames[i][2];
-	    optionString += '<br />' + id + ', lost when ' + reason;
+	//optionString += 'Detailed game info:<br /><table>';
+	if (clientGame) {
+	    var id = clientGame.getId();
+	    optionString += '<tr><td><a href="javascript:demandGameInfo(\'' + id + '\')">' 
+		+ id + '</a></td><td>current game</td></tr>';
 	}
+	if (serverGame && serverGame !== clientGame) {
+	    var id = clientGame.getId();
+	    optionString += '<tr><td><a href="javascript:demandGameInfo(\'' + id + '\')">' 
+		+ id + '</a></td><td>remote game</td></tr>';
+	}
+	for (var id in oldGames) {
+	    var reason = oldGames[id][0];
+	    var text = oldGames[id][1];
+	    optionString += '<tr><td><a href="javascript:demandGameInfo(\'' + id + '\')">' 
+		+ id + '</a></td><td>lost when ' + reason + '</td></tr>';
+	}
+	optionString += '</table>';
 	document.getElementById("gameOptions").innerHTML = optionString;
     }
 }
@@ -1120,4 +1122,36 @@ Please wait: determining connection status.\
 </div>\
 <div id="gameOptions"></div>\
 ');
+}
+
+demandGameInfo = function(id) {
+    var reason = null;
+    var text = null;
+    if (oldGames[id]) {
+	reason = "lost when " + oldGames[id][0];
+	text = oldGames[id][1];
+    } else if (clientGame && clientGame.getId() == id) {
+	reason = "current game";
+	text = clientGame.generate(true);
+    } else if (serverGame && clientGame.getId() == id) {
+	reason = "remote game";
+	text = serverGame.generate(true);
+    } else {
+	demand("gameinfo", 5, 'Game ' + id + ' not found in system.'
+	       + 
+'<form>\
+<input type="button" value="OK :(" onClick="undemand(\'gameinfo\')" />\
+</form>');
+	return;
+    }
+    var response = new Array();
+    response.push(id + '<br />');
+    response.push(reason + '<br />');
+    response.push('\
+<form id="stateform" action="" method="GET" onSubmit="undemand(\'gameinfo\'); return false">\
+<textarea name="gameinput" id="gameinput" rows="10" cols="80">'
++ text + '</textarea><br />\
+<input type="submit" value="Restore" />\
+</form>');
+    demand("gameinfo", 5, response.join(""));
 }
