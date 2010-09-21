@@ -1002,8 +1002,39 @@ function createNewServerGame(form) {
     return false;
 }
 
+function startNewSolitaireGame() {
+    var wants = '\
+Add some game elements to begin.\
+<form id="questions" action="" method="GET" \
+onSubmit="return createNewSolitaireGame(this)">';
+    wants += wantCards();
+    wants += wantTarot();
+    wants += wantPyramids();
+    wants += '<br /><input type="submit" value="Done." />';
+    demand("create", 1, wants);
+    undemand("connection");
+}
+
+function createNewSolitaireGame(form) {
+    changeClientGame(GameRecord.create());
+    //changeServerGame(clientGame);
+    demand("creating", 1, "Please wait, building game...");
+    undemand("create");
+    for (var i in form.item) {
+	if (form.item[i].checked) {
+	    eval(form.item[i].value); //yikes!
+	}
+    }
+    undemand("creating");
+    return false;
+}
+
 function joinGameInProgress() {
     serverGame.join();
+    undemand("connection"); //drop out of connection screen.
+}
+
+function continueGame() {
     undemand("connection"); //drop out of connection screen.
 }
 
@@ -1048,6 +1079,19 @@ function mainTimer() {
 </form>\
 ';
 	    }
+	}
+	if (clientGame && clientGame !== serverGame) {
+		optionString += '<br />\
+<form>\
+<input type="button" value="Continue solitaire" onClick="continueGame()" />\
+</form>\
+';
+	} else {
+		optionString += '<br />\
+<form>\
+<input type="button" value="Start new solitaire game" onClick="startNewSolitaireGame()" />\
+</form>\
+';
 	}
 	document.getElementById("gameOptions").innerHTML = optionString;
     }
