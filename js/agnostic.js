@@ -81,7 +81,7 @@ GameRecord.prototype = {
     },
     join: function() {
 	if (clientGame === serverGame) {return;}
-	changeClientGame(this);
+	changeClientGame(this, "you joined a game");
     },
     _join: function() {
 	arr = new Array();
@@ -112,8 +112,15 @@ GameRecord.prototype = {
 	return result.join("");
     },
     upload: function() {
-	changeServerGame(this);
+	changeServerGame(this, "you uploaded a different game");
 	rsbp.raw_write(this.generate(true));
+    },
+    getId: function() {
+	if (this.objects[''] && this.objects[''][1]) {
+	    return this.objects[''][1].slice(4);
+	} else {
+	    return (new Date()).getTime() + "?";
+	}
     }
 }
 GameRecord.create = function() {
@@ -122,32 +129,32 @@ GameRecord.create = function() {
     return game;
 }
 
-function ensureGameSaved(game) {
+function ensureGameSaved(game, reason) {
     if (!game) {return;}
     var text = game.generate(true);
     var found = false;
     for (var i in oldGames) {
-	if (oldGames[i] == text) {
+	if (oldGames[i][2] == text) {
 	    found = true;
 	}
     }
     if (!found) {
-	oldGames.push(text);
+	oldGames.push([game.getId(), reason, text]);
     }
 }
 
-function changeServerGame(game) {
+function changeServerGame(game, reason) {
     if (game === serverGame) {return;}
-    ensureGameSaved(serverGame);
+    ensureGameSaved(serverGame, reason);
     if (serverGame === clientGame) {
 	demandConnectionScreen();
     }
     serverGame = game;
 }
 
-function changeClientGame(game) {
+function changeClientGame(game, reason) {
     if (game === clientGame) {return;}
-    ensureGameSaved(clientGame);
+    ensureGameSaved(clientGame, reason);
 
     if (clientGame) {
 	//alert("Clearing all client data!");
@@ -210,12 +217,13 @@ function agnosticRSBP() {
 		serverGame.incoming(objectName, payload);
 	    } else if (payload.slice(0,3) == 'new') {
 		if (!serverGame || serverGame.objects[''][1] != payload) {
-		    changeServerGame(new GameRecord());
-		} else if (serverGame) {
+		    changeServerGame(new GameRecord(), "someone else started a game");
+		} 
+		if (serverGame) {
 		    serverGame.incoming(objectName, payload);
 		}
 	    } else if (!payload) {
-		changeServerGame(null);
+		changeServerGame(null, "the server rebooted");
 	    }
 	}
 	if (this.after) {
@@ -984,14 +992,14 @@ onSubmit="return createNewServerGame(this)">';
     wants += wantTarot();
     wants += wantPyramids();
     wants += '<br /><input type="submit" value="Done." />';
-    demand("create", 1, wants);
+    demand("create", 6, wants);
     undemand("connection");
 }
 
 function createNewServerGame(form) {
-    changeClientGame(GameRecord.create());
-    changeServerGame(clientGame);
-    demand("creating", 1, "Please wait, building game...");
+    changeClientGame(GameRecord.create(), "you started a new game");
+    changeServerGame(clientGame, "you started a new game");
+    demand("creating", 7, "Please wait, building game...");
     undemand("create");
     for (var i in form.item) {
 	if (form.item[i].checked) {
@@ -1011,14 +1019,14 @@ onSubmit="return createNewSolitaireGame(this)">';
     wants += wantTarot();
     wants += wantPyramids();
     wants += '<br /><input type="submit" value="Done." />';
-    demand("create", 1, wants);
+    demand("create", 6, wants);
     undemand("connection");
 }
 
 function createNewSolitaireGame(form) {
-    changeClientGame(GameRecord.create());
+    changeClientGame(GameRecord.create(), "you started a new game");
     //changeServerGame(clientGame);
-    demand("creating", 1, "Please wait, building game...");
+    demand("creating", 7, "Please wait, building game...");
     undemand("create");
     for (var i in form.item) {
 	if (form.item[i].checked) {
@@ -1092,6 +1100,12 @@ function mainTimer() {
 <input type="button" value="Start new solitaire game" onClick="startNewSolitaireGame()" />\
 </form>\
 ';
+	}
+	for (var i in oldGames) {
+	    var id = oldGames[i][0];
+	    var reason = oldGames[i][1];
+	    var text = oldGames[i][2];
+	    optionString += '<br />' + id + ', lost when ' + reason;
 	}
 	document.getElementById("gameOptions").innerHTML = optionString;
     }
