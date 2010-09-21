@@ -104,7 +104,7 @@ GameRecord.prototype = {
 	arr.sort(function(a,b){return a[0][0]-b[0][0];});
 	var result = new Array();
 	if (all) {
-	    result.push("..n..o-new");
+	    result.push("..n");
 	}
 	for (var i in arr) {
 	    result.push("..o" + arr[i][1] + "-" + arr[i][0][1]);
@@ -118,7 +118,7 @@ GameRecord.prototype = {
 }
 GameRecord.create = function() {
     var game = new GameRecord();
-    game.outgoing('', 'new');
+    game.outgoing('', 'new ' + (new Date()).getTime() );
     return game;
 }
 
@@ -139,6 +139,9 @@ function ensureGameSaved(game) {
 function changeServerGame(game) {
     if (game === serverGame) {return;}
     ensureGameSaved(serverGame);
+    if (serverGame === clientGame) {
+	demandConnectionScreen();
+    }
     serverGame = game;
 }
 
@@ -147,7 +150,7 @@ function changeClientGame(game) {
     ensureGameSaved(clientGame);
 
     if (clientGame) {
-	alert("Clearing all client data!");
+	//alert("Clearing all client data!");
     }
     for (var i in objectsByName) {
 	var obj = objectsByName[i];
@@ -205,8 +208,12 @@ function agnosticRSBP() {
 		    clientGame = serverGame;
 		}
 		serverGame.incoming(objectName, payload);
-	    } else if (payload == 'new') {
-		changeServerGame(new GameRecord());
+	    } else if (payload.slice(0,3) == 'new') {
+		if (!serverGame || serverGame.objects[''][1] != payload) {
+		    changeServerGame(new GameRecord());
+		} else if (serverGame) {
+		    serverGame.incoming(objectName, payload);
+		}
 	    } else if (!payload) {
 		changeServerGame(null);
 	    }
@@ -1003,9 +1010,9 @@ function joinGameInProgress() {
 var count = 0;
 
 function mainTimer() {
-    /*debug(count++, true);
+    debug(count++, true);
     debug(serverGame);
-    debug(clientGame);*/
+    debug(clientGame === serverGame);
     if (!rsbp.isConnected()) {
 	demandConnectionScreen();
 	//safeAlert("disconnected");
