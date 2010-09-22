@@ -289,7 +289,7 @@ function agImage(eltype) {
 }
 agImage.prototype = {
     finalize: function(id, desc) {
-	registerObject(this, id);
+	agImage.registerObject(this, id);
 	this.display();
 	if (!id) {
 	    Game.client.outgoing("c" + this.class + "." + this.name, desc);
@@ -392,6 +392,15 @@ agImage.prototype = {
 	document.body.appendChild(this.e);
     }
 }
+agImage._next_id = 1;
+agImage.get_next_id = function() {
+    return "i" + agImage._next_id++;
+}
+agImage.registerObject = function(obj, name) {
+    obj.name = name || agImage.get_next_id();
+    objectsByOrder.push(obj);
+    objectsByName[obj.name] = obj;
+}
 var classRegistry = new Object();
 function registerClass(class, name) {
     class.prototype.class = name;
@@ -473,38 +482,29 @@ function fixZOrder(array) {
 function getRotation(vector) {//in radians
 	return Math.atan2(vector.e(2), vector.e(1));
 }
-
-//alert("" + getRotation($V([1,0])) + " " + getRotation($V([0,1])) + " " + getRotation($V([-1,0])))
-
 function getAbsoluteRotation(center, point) { //in radians
     return getRotation(point.subtract(center));
 }
-
 function getRelativeRotation(center, first, last) { //in radians
     return getAbsoluteRotation(center, last) - getAbsoluteRotation(center, first);
 }
-
 function degreesToRadians(deg) {
 	return Math.PI * 2 * deg / 360;
 }
-
 function radiansToDegrees(rad) {
 	return rad * 360 / (Math.PI * 2);
 }
-
 function cleanupDegrees(deg) {
 	deg = deg % 360;
 	while (deg < 0) deg += 360;
         return deg;
 }
-
 function snapDegrees(deg, increment, closeness) {
     for (var snap=0; snap < 360 + increment; snap += increment) {
 	if (Math.abs(deg - snap) < closeness) deg = snap;
     }
     return deg % 360;
 }
-
 function snapRotation(object, increment, closeness) {
     object.setRotation(0, snapDegrees(object.currentRotation || 0, 
 						 increment, closeness));
@@ -513,17 +513,6 @@ function snapRotation(object, increment, closeness) {
 function randomLocation() {
     return Vector.create([parseInt(Math.random() * (window.innerWidth - 200) + 100),
                           parseInt(Math.random() * (window.innerHeight - 200) + 100)]);
-}
-
-var _next_id = 1;
-function get_next_id() {
-    return "i" + _next_id++;
-}
-
-function registerObject(obj, name) {
-    obj.name = name || get_next_id();
-    objectsByOrder.push(obj);
-    objectsByName[obj.name] = obj;
 }
 
 function handleIncoming(name, data) {
