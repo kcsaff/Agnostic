@@ -40,21 +40,16 @@ function debug(text, refresh) {
     }
 }
 
-var oldGames = new Object();
-var serverGame = null;
-var clientGame = null;
-
-function GameRecord() {
+function Game() {
     this.objects = new Object();
     this.pending = new Object();
     this.transaction = 0;
 }
-GameRecord.prototype = {
+Game.prototype = {
     incoming: function(key, data, maintain_pending) {
-	//debug('handling ' + key + '-' + data);
 	if (!this.pending[key]) {
 	    this.objects[key] = [this.transaction++, data];
-	    if (this === clientGame) {
+	    if (this === Game.client) {
 		handleIncoming(key, data);
 	    }
 	} else if (!maintain_pending && this.objects[key][1] == data) {
@@ -66,8 +61,8 @@ GameRecord.prototype = {
 	this.pending[key] = true;
     },
     join: function() {
-	if (clientGame === serverGame) {return;}
-	changeClientGame(this, "you joined a game");
+	if (Game.client === Game.server) {return;}
+	Game.changeClient(this, "you joined a game");
     },
     _join: function() {
 	arr = new Array();
@@ -107,35 +102,38 @@ GameRecord.prototype = {
 	} else {
 	    return (new Date()).getTime() + "?";
 	}
+    },
+    ensureSaved: function(reason) {
+	if (!Game.backups[this.getId()]) {
+	    Game.backups[this.getId()] = [reason, this.generate(true)];
+	}
     }
 }
-GameRecord.create = function() {
-    var game = new GameRecord();
+Game.create = function() {
+    var game = new Game();
     game.outgoing('', 'new ' + (new Date()).getTime() );
     return game;
 }
-
-function ensureGameSaved(game, reason) {
+Game.backups = new Object();
+Game.server = null;
+Game.client = null;
+Game.ensureSaved = function(game, reason) {
     if (!game) {return;}
-    if (!oldGames[game.getId()]) {
-	oldGames[game.getId()] = [reason, game.generate(true)];
-    }
+    game.ensureSaved(reason);
 }
-
-function changeServerGame(game, reason) {
-    if (game === serverGame) {return;}
-    ensureGameSaved(serverGame, reason);
-    if (serverGame === clientGame) {
+Game.changeServer = function(game, reason) {
+    if (game === Game.server) {return;}
+    Game.ensureSaved(Game.server, reason);
+    if (Game.server === Game.client) {
 	demandConnectionScreen();
     }
-    serverGame = game;
+    Game.server = game;
 }
+Game.changeClient = function(game, reason) {
+    if (game === Game.client) {return;}
+    Game.ensureSaved(Game.client, reason);
 
-function changeClientGame(game, reason) {
-    if (game === clientGame) {return;}
-    ensureGameSaved(clientGame, reason);
-
-    if (clientGame) {
+    if (Game.client) {
 	//alert("Clearing all client data!");
     }
     for (var i in objectsByName) {
@@ -147,7 +145,7 @@ function changeClientGame(game, reason) {
     objectsByOrder = new Array();
     objectsByName = new Object();  
 
-    clientGame = game;
+    Game.client = game;
     game._join();
 }
 
@@ -189,20 +187,20 @@ function agnosticRSBP() {
 	    var transaction = parseInt(meta.slice(1, ds2));
 	    this.last_transaction = transaction;
 	    var objectName = meta.slice(ds2 + 1);
-	    if (serverGame && objectName) {
-		if (!clientGame) {
-		    clientGame = serverGame;
+	    if (Game.server && objectName) {
+		if (!Game.client) {
+		    Game.client = Game.server;
 		}
-		serverGame.incoming(objectName, payload);
+		Game.server.incoming(objectName, payload);
 	    } else if (payload.slice(0,3) == 'new') {
-		if (!serverGame || serverGame.objects[''][1] != payload) {
-		    changeServerGame(new GameRecord(), "someone else started a game");
+		if (!Game.server || Game.server.objects[''][1] != payload) {
+		    Game.changeServer(new Game(), "someone else started a game");
 		} 
-		if (serverGame) {
-		    serverGame.incoming(objectName, payload);
+		if (Game.server) {
+		    Game.server.incoming(objectName, payload);
 		}
 	    } else if (!payload) {
-		changeServerGame(null, "the server rebooted");
+		Game.changeServer(null, "the server rebooted");
 	    }
 	}
 	if (this.after) {
@@ -213,8 +211,8 @@ function agnosticRSBP() {
     rsbp.generate = function() {
 	var result = this.written;
 	this.written = new Array();
-	if (serverGame) {
-	    result.push(serverGame.generate(false));
+	if (Game.server) {
+	    result.push(Game.server.generate(false));
 	    if (this.last_transaction) {
 		result.push("..t" + this.last_transaction);
 	    } else {
@@ -297,7 +295,7 @@ agImage.prototype = {
 	registerObject(this, id);
 	this.display();
 	if (!id) {
-	    clientGame.outgoing("c" + this.class + "." + this.name, desc);
+	    Game.client.outgoing("c" + this.class + "." + this.name, desc);
 	    this.serialize();
 	}
     },
@@ -328,7 +326,7 @@ agImage.prototype = {
     },
     serialize:function() {
         var center = this.getCenter();
-        clientGame.outgoing(this.name,
+        Game.client.outgoing(this.name,
 			    "" + Math.round(center.e(1)) + " " + Math.round(center.e(2)) + " " 
 			    + Math.round(this.currentRotation || 0) + " "
 			    + (this.image_index || 0));
@@ -652,8 +650,8 @@ onSubmit="return createNewServerGame(this)">';
 }
 
 function createNewServerGame(form) {
-    changeClientGame(GameRecord.create(), "you started a new game");
-    changeServerGame(clientGame, "you started a new game");
+    Game.changeClient(Game.create(), "you started a new game");
+    Game.changeServer(Game.client, "you started a new game");
     demand("creating", 7, "Please wait, building game...");
     undemand("create");
     for (var i in form.item) {
@@ -679,8 +677,8 @@ onSubmit="return createNewSolitaireGame(this)">';
 }
 
 function createNewSolitaireGame(form) {
-    changeClientGame(GameRecord.create(), "you started a new game");
-    //changeServerGame(clientGame);
+    Game.changeClient(Game.create(), "you started a new game");
+    //Game.changeServer(Game.client);
     demand("creating", 7, "Please wait, building game...");
     undemand("create");
     for (var i in form.item) {
@@ -693,7 +691,7 @@ function createNewSolitaireGame(form) {
 }
 
 function joinGameInProgress() {
-    serverGame.join();
+    Game.server.join();
     undemand("connection"); //drop out of connection screen.
 }
 
@@ -705,8 +703,8 @@ var count = 0;
 
 function mainTimer() {
     debug(count++, true);
-    debug(serverGame);
-    debug(clientGame === serverGame);
+    debug(Game.server);
+    debug(Game.client === Game.server);
     if (!rsbp.isConnected()) {
 	demandConnectionScreen();
 	//safeAlert("disconnected");
@@ -728,7 +726,7 @@ function mainTimer() {
     if (document.getElementById("gameOptions")) {
 	var optionString = "";
 	if (rsbp.isConnected()) {
-	    if (serverGame) {
+	    if (Game.server) {
 		optionString += '\
 <form>\
 <input type="button" value="Join game in progress" onClick="joinGameInProgress()" />\
@@ -743,7 +741,7 @@ function mainTimer() {
 ';
 	    }
 	}
-	if (clientGame && clientGame !== serverGame) {
+	if (Game.client && Game.client !== Game.server) {
 		optionString += '<br />\
 <form>\
 <input type="button" value="Continue solitaire" onClick="continueGame()" />\
@@ -757,19 +755,19 @@ function mainTimer() {
 ';
 	}
 	//optionString += 'Detailed game info:<br /><table>';
-	if (clientGame) {
-	    var id = clientGame.getId();
+	if (Game.client) {
+	    var id = Game.client.getId();
 	    optionString += '<tr><td><a href="javascript:demandGameInfo(\'' + id + '\')">' 
 		+ id + '</a></td><td>current game</td></tr>';
 	}
-	if (serverGame && serverGame !== clientGame) {
-	    var id = serverGame.getId();
+	if (Game.server && Game.server !== Game.client) {
+	    var id = Game.server.getId();
 	    optionString += '<tr><td><a href="javascript:demandGameInfo(\'' + id + '\')">' 
 		+ id + '</a></td><td>remote game</td></tr>';
 	}
-	for (var id in oldGames) {
-	    var reason = oldGames[id][0];
-	    var text = oldGames[id][1];
+	for (var id in Game.backups) {
+	    var reason = Game.backups[id][0];
+	    var text = Game.backups[id][1];
 	    optionString += '<tr><td><a href="javascript:demandGameInfo(\'' + id + '\')">' 
 		+ id + '</a></td><td>lost when ' + reason + '</td></tr>';
 	}
@@ -792,15 +790,15 @@ Please wait: determining connection status.\
 demandGameInfo = function(id) {
     var reason = null;
     var text = null;
-    if (oldGames[id]) {
-	reason = "lost when " + oldGames[id][0];
-	text = oldGames[id][1];
-    } else if (clientGame && clientGame.getId() == id) {
+    if (Game.backups[id]) {
+	reason = "lost when " + Game.backups[id][0];
+	text = Game.backups[id][1];
+    } else if (Game.client && Game.client.getId() == id) {
 	reason = "current game";
-	text = clientGame.generate(true);
-    } else if (serverGame && clientGame.getId() == id) {
+	text = Game.client.generate(true);
+    } else if (Game.server && Game.client.getId() == id) {
 	reason = "remote game";
-	text = serverGame.generate(true);
+	text = Game.server.generate(true);
     } else {
 	demand("gameinfo", 5, 'Game ' + id + ' not found in system.'
 	       + 
