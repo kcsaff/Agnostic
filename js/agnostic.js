@@ -39,13 +39,15 @@ function Game() {
     this.pending = new Object();
     this.signals = new Object();
     this.keepalives = new Object();
+    this.last_keepalive = null;
     this.transaction = 0;
 }
 Game.prototype = {
     signal: function(ttl, key) {
-	    this.signals[key] = (new Date()).time() + ttl * 1e3;
+	    this.signals[key] = (new Date()).getTime() + ttl * 1e3;
     },
     keepalive: function(key) {
+    	safeAlert(key);
     	this.keepalives[key] = true;
     },
     incoming: function(key, data, /*optional*/maintain_pending) {
@@ -92,13 +94,13 @@ Game.prototype = {
             result.push("..o" + arr[i][1] + "-" + arr[i][0][1]);
         }
         for (var i in this.keepalives) {
-        	result.push("..s5-" + this.keepalives[i]);
+        	result.push("..s5-" + i);
         }
         return result.join("");
     },
     upload: function() {
         changeServerGame(this, "you uploaded a different game");
-        rsbp.raw_write(this.generate(true));
+        rsbp.write(this.generate(true));
     },
     getId: function() {
         if (this.objects[''] && this.objects[''][1]) {
@@ -111,6 +113,17 @@ Game.prototype = {
         if (!Game.backups[this.getId()]) {
             Game.backups[this.getId()] = [reason, this.generate(true)];
         }
+    },
+    reset: function(reason) {
+    	if (this === Game.server) {
+    		Game.changeServer(null, reason);
+    		rsbp.write('..n..o-');
+    	}
+    	if (this === Game.client) {
+    		Game.clearBoard();
+    		Game.changeClient(null, reason);
+    	}
+    	Game.apply(this);
     }
 }
 Game.create = function() {
@@ -137,9 +150,12 @@ Game.changeClient = function(game, reason) {
     if (game === Game.client) {return;}
     Game.ensureSaved(Game.client, reason);
 
-    if (Game.client) {
-        //alert("Clearing all client data!");
-    }
+    Game.clearBoard();
+    
+    Game.client = game;
+    game._join();
+}
+Game.clearBoard = function() {
     for (var i in agImage.byName) {
         var obj = agImage.byName[i];
         if (obj && obj.e && obj.e.parentNode) {
@@ -148,9 +164,6 @@ Game.changeClient = function(game, reason) {
     }
     agImage.byOrder = new Array();
     agImage.byName = new Object();  
-
-    Game.client = game;
-    game._join();
 }
 
 function agnosticRSBP() {
@@ -231,6 +244,9 @@ function agnosticRSBP() {
         result.push("\n");
         return result.join("");
     }
+    rsbp.write = function(data) {
+    	this.written.push(data);
+    }
     rsbp.do_write = function(data) {
         var http = new XMLHttpRequest();
         var rsbp = this;
@@ -239,8 +255,8 @@ function agnosticRSBP() {
         this.unsent_data = data;
         http.open("POST", rsbp.server || "RSBP", true);
         http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-        http.setRequestHeader("Content-length", data.length);
-        http.setRequestHeader("Connection", "close");
+        //http.setRequestHeader("Content-length", data.length);
+        //http.setRequestHeader("Connection", "close");
         http.onreadystatechange = function() {
             if (http.readyState == 4) {
                 if (http.status == 200) {
@@ -304,7 +320,7 @@ agImage.prototype = {
         agImage.registerObject(this, id);
         this.display();
         if (!id) {
-            Game.client.outgoing("c" + this.class + "." + this.name, desc);
+            Game.client.outgoing("c" + this.class + "." + this.id, desc);
             this.serialize();
         }
     },
@@ -335,7 +351,7 @@ agImage.prototype = {
     },
     serialize:function() {
         var center = this.getCenter();
-        Game.client.outgoing(this.name,
+        Game.client.outgoing(this.id,
                             "" + Math.round(center.e(1)) + " " + Math.round(center.e(2)) + " " 
                             + Math.round(this.currentRotation || 0) + " "
                             + (this.image_index || 0));
@@ -409,9 +425,11 @@ agImage.get_next_id = function() {
     return "i" + agImage._next_id++;
 }
 agImage.registerObject = function(obj, name) {
-    obj.name = name || agImage.get_next_id();
-    agImage.byOrder.push(obj);
-    agImage.byName[obj.name] = obj;
+    obj.id = name || agImage.get_next_id();
+    if (this.e) {
+    	agImage.byOrder.push(obj);
+    }
+    agImage.byName[obj.id] = obj;
 }
 var classRegistry = new Object();
 function registerClass(class, name) {
@@ -439,6 +457,29 @@ function handleIncoming(name, data) {
         alert("Unhandled object: " + name + ", " + data);
     }
 }
+
+
+var User = extend
+(agImage, 
+ function(name, id) {
+    agImage.apply(this);
+    this.name = name;
+    delete this.e;
+    if (!id) {
+    	Game.client.keepalive(name);
+    }
+    this.finalize(id, name);
+},
+ {
+	display: function() {},
+	serialize: function() {},
+ }
+ );
+User.recreate = function(id, name) {
+    return new User(name, id);
+}
+registerClass(User, "User");
+
 
 //////////// MOUSE
 
@@ -631,7 +672,9 @@ Add some game elements to begin.\
 <form id="questions" action="" method="GET" \
 onSubmit="return createNewGame(this, ' + isServer + ')">';
     for (var c in classRegistry) {
-        wants += '<br />' + classRegistry[c].createForm() + '<br />';
+    	if (classRegistry[c].createForm) {
+    		wants += '<br />' + classRegistry[c].createForm() + '<br />';
+    	}
     }
     wants += '<br /><input type="submit" value="Done." />';
     demand("create", 6, wants);
@@ -651,6 +694,7 @@ function createNewGame(form, isServer) {
         }
     }
     undemand("creating");
+    new User("kevin");
     return false;
 }
 

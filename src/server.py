@@ -36,9 +36,7 @@ class RSBP(object): #Really Simple Bounce Protocol
         with self.lock:
             for item in data.split(RSBP.SEP)[1:]:
                 if item.startswith('n'): #New game, clear all data
-                    #raw_input()
                     self.objects = {}
-                    #self.transaction_offset += len(self.transactions)
                     self.transaction_offset = 1
                     self.transactions = []
                 elif item.startswith('o'): #stOre Object data
@@ -117,20 +115,26 @@ class Server(BaseHTTPRequestHandler):
 class MultiThreadedHTTPServer(ThreadingMixIn, HTTPServer):
     """Multi-threaded server"""
 
-def main(port = 80):
-    server = MultiThreadedHTTPServer(('', port), Server)
-    try:
-        #print Server.rsbp.handle('comment..o5-Hello,..o7-World..r')
-        #print Server.rsbp.handle('comment..o7-Monkey..o345-Dog..o7-chicken..t2')
-        server.serve_forever()
-    finally:
-        server.socket.close()
-
 if __name__ == '__main__':
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option('-p', '--port', dest='port',
                       help='serve on PORT', metavar='PORT',
                       default=80)
+    parser.add_option('--threaded', dest='threaded',
+                      action='store_true',
+                      help='run the server in multithreading mode',
+                      default=False)
+    parser.add_option('--no-threads', dest='threaded',
+                      action='store_false',
+                      help='run the server in single threaded mode')
     options, args = parser.parse_args()
-    main(options.port)
+
+    ServerClass = {False:HTTPServer, True:MultiThreadedHTTPServer}[options.threaded]
+    server = ServerClass(('', options.port), Server)
+    try:
+        #print Server.rsbp.handle('comment..o5-Hello,..o7-World..r')
+        #print Server.rsbp.handle('comment..o7-Monkey..o345-Dog..o7-chicken..t2')
+        server.serve_forever()
+    finally:
+        server.socket.close()
