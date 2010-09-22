@@ -39,21 +39,21 @@ Card.recreate = function(id, desc) {
 }
 registerClass(Card, "Card");
 
-function createCard(front, back, id) {
-    return new Card(front, back, id);
-}
-
-function createStandardDeck() {
+Card.createDeck = function(jokers) {
     var suits = "clubs diamonds hearts spades".split(" ");
     var ranks = "a 2 3 4 5 6 7 8 9 10 j q k".split(" ");
     for (var suit in suits) {
 	for (var rank in ranks) {
-	    createCard("card/" + suits[suit] + "-" + ranks[rank] + "-75.png",
+	    new Card("card/" + suits[suit] + "-" + ranks[rank] + "-75.png",
 		       "card/back-blue-75-1.png");
 	}
     }
-    createCard("card/joker-r-75.png", "card/back-blue-75-1.png");
-    createCard("card/joker-b-75.png", "card/back-blue-75-1.png");
+    if (jokers && jokers >= 1) {
+	new Card("card/joker-r-75.png", "card/back-blue-75-1.png");
+    }
+    if (jokers && jokers >= 2) {
+	new Card("card/joker-b-75.png", "card/back-blue-75-1.png");
+    }
 }
 
 

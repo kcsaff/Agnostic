@@ -617,25 +617,6 @@ function handleIncoming(name, data) {
     }
 }
 
-function createTarotDeck() {
-    var suits = "wa sw cu pe".split(" ");
-    var ranks = "ac 02 03 04 05 06 07 08 09 10 pa kn qu ki".split(" ");
-    for (var suit in suits) {
-	for (var rank in ranks) {
-	    createCard("tarot/" + suits[suit] + ranks[rank] + ".png",
-		       "tarot/back.png");
-	}
-    }
-
-    for (var i = 0; i < 22; ++i) {
-	var s = "" + i;
-	if (s.length < 2) {
-	    s = "0" + s;
-	}
-	createCard("tarot/ar" + s + ".png", "tarot/back.png");
-    }
-}
-
 function createPyramidStash(color) {
     for (var i = 0; i < 5; ++i) {
 	createPyramid("pyramid/" + color + "-pyramid.png", 1.00);
@@ -735,7 +716,7 @@ function _show_demands() {
 function wantCards() {
     return '\
 <br /><label for="wantStandardDeck"><img src="card/spades-a-75.png" /></label><br />\
-<input type="checkbox" name="item" id="wantStandardDeck" value="createStandardDeck()">\
+<input type="checkbox" name="item" id="wantStandardDeck" value="Card.createDeck(2)">\
 Add a deck of standard playing cards.</input><br />\
 ';
 }
@@ -743,7 +724,7 @@ Add a deck of standard playing cards.</input><br />\
 function wantTarot() {
     return '\
 <br /><label for="wantTarotDeck"><img src="tarot/ar00.png" /></label><br />\
-<input type="checkbox" name="item" id="wantTarotDeck" value="createTarotDeck()">\
+<input type="checkbox" name="item" id="wantTarotDeck" value="Tarot.createDeck()">\
 Add a deck of tarot cards.</input><br />\
 ';
 }
