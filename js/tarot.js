@@ -43,10 +43,14 @@ Tarot.createDeck = function() {
     }
 
     for (var i = 0; i < 22; ++i) {
-	var s = "" + i;
-	if (s.length < 2) {
-	    s = "0" + s;
-	}
-	new Tarot("tarot/ar" + s + ".png", "tarot/back.png");
+	new Tarot("tarot/ar" + (i < 10 ? "0" + i : i) + ".png", "tarot/back.png");
     }
+}
+
+Tarot.createForm = function() {
+    return '\
+<br /><label for="wantTarotDeck"><img src="tarot/ar00.png" /></label><br />\
+<input type="checkbox" name="item" id="wantTarotDeck" value="Tarot.createDeck()">\
+Add a deck of tarot cards.</input><br />\
+';
 }

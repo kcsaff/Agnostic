@@ -210,10 +210,6 @@ function agnosticRSBP() {
 	}
 	//alert(data);
     }
-    /*rsbp.refresh = function() {
-	this.last_transaction = undefined;
-	this.raw_write("..r");
-	}*/
     rsbp.generate = function() {
 	var result = this.written;
 	this.written = new Array();
@@ -277,9 +273,6 @@ function agnosticRSBP() {
 	}
 	http.send(data);
     }
-    rsbp.request_all = function() {
-	return;
-    }
     rsbp.poll = function() {
 	this.do_write(this.generate(false));
     }
@@ -288,12 +281,6 @@ function agnosticRSBP() {
 	var self = this;
 	setTimeout(function() {self.poll();}, this.minimum_wait);
     }
-    /*rsbp.write = function(name, payload) {
-	this.written.push("..o" + name + "-" + payload);
-    }
-    rsbp.raw_write = function(data) {
-	this.written.push(data);
-	}*/
     return rsbp;
 }
 
@@ -651,47 +638,14 @@ function _show_demands() {
     //document.body.appendChild(inner);
 }
 
-function wantCards() {
-    return '\
-<br /><label for="wantStandardDeck"><img src="card/spades-a-75.png" /></label><br />\
-<input type="checkbox" name="item" id="wantStandardDeck" value="Card.createDeck(2)">\
-Add a deck of standard playing cards.</input><br />\
-';
-}
-
-function wantTarot() {
-    return '\
-<br /><label for="wantTarotDeck"><img src="tarot/ar00.png" /></label><br />\
-<input type="checkbox" name="item" id="wantTarotDeck" value="Tarot.createDeck()">\
-Add a deck of tarot cards.</input><br />\
-';
-}
-
-function wantPyramids() {
-    var result = new Array();
-    var colors = "red green blue yellow purple orange".split(" ");
-    result.push('<table><tr align="center">');
-    for (var i in colors) {
-	result.push('<td><label for="Pyr' + i + '"><img src="pyramid/' 
-		    + colors[i] + '-pyramid.png" /></label></td>');
-    }
-    result.push('</tr><tr align="center">');
-    for (var i in colors) {
-	result.push('<td><input type="checkbox" name="item" id="Pyr' + i 
-		    + '" value="Pyramid.createStash(\'' + colors[i] + '\')"></input></td>');
-    }
-    result.push('</tr></table>Add some pyramid stashes.<br />');
-    return result.join('');
-}
-
 function startNewServerGame() {
     var wants = '\
 Add some game elements to begin.\
 <form id="questions" action="" method="GET" \
 onSubmit="return createNewServerGame(this)">';
-    wants += wantCards();
-    wants += wantTarot();
-    wants += wantPyramids();
+    for (var c in classRegistry) {
+	wants += '<br />' + classRegistry[c].createForm() + '<br />';
+    }
     wants += '<br /><input type="submit" value="Done." />';
     demand("create", 6, wants);
     undemand("connection");
@@ -716,9 +670,9 @@ function startNewSolitaireGame() {
 Add some game elements to begin.\
 <form id="questions" action="" method="GET" \
 onSubmit="return createNewSolitaireGame(this)">';
-    wants += wantCards();
-    wants += wantTarot();
-    wants += wantPyramids();
+    for (var c in classRegistry) {
+	wants += '<br />' + classRegistry[c].createForm() + '<br />';
+    }
     wants += '<br /><input type="submit" value="Done." />';
     demand("create", 6, wants);
     undemand("connection");

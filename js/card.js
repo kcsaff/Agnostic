@@ -55,6 +55,11 @@ Card.createDeck = function(jokers) {
 	new Card("card/joker-b-75.png", "card/back-blue-75-1.png");
     }
 }
+Card.createForm = function() {
+    return '<label for="wantStandardDeck"><img src="card/spades-a-75.png" /></label><br />\
+<input type="checkbox" name="item" id="wantStandardDeck" value="Card.createDeck(2)">\
+Add a deck of standard playing cards.</input>';
+}
 
 
 function dragArbitraryRotate(object, event) {

@@ -54,3 +54,20 @@ Pyramid.createStashes = function(color) {
 	Pyramid.createStash(colors[i]);
     }
 }
+
+Pyramid.createForm = function() {
+    var result = new Array();
+    var colors = "red green blue yellow purple orange".split(" ");
+    result.push('<table><tr align="center">');
+    for (var i in colors) {
+	result.push('<td><label for="Pyr' + i + '"><img src="pyramid/' 
+		    + colors[i] + '-pyramid.png" /></label></td>');
+    }
+    result.push('</tr><tr align="center">');
+    for (var i in colors) {
+	result.push('<td><input type="checkbox" name="item" id="Pyr' + i 
+		    + '" value="Pyramid.createStash(\'' + colors[i] + '\')"></input></td>');
+    }
+    result.push('</tr></table>Add some pyramid stashes.<br />');
+    return result.join('');
+}
