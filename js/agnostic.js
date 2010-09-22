@@ -17,22 +17,8 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-/*function include(filename)
-{
-	var head = document.getElementsByTagName('head')[0];
-	
-	script = document.createElement('script');
-	script.src = filename;
-	script.type = 'text/javascript';
-	
-	head.appendChild(script)
-}
-
-include('sylvester.src.js');*/
-
 document.onmousemove = mouseMove;
 document.onmouseup = mouseUp;
-//document.contextmenu = doNothing;
 
 var objectsByOrder = new Array();
 var objectsByName = new Object();
@@ -562,39 +548,6 @@ function registerObject(obj, name) {
     objectsByName[obj.name] = obj;
 }
 
-function createPyramid(src, size, id) {
-    if (id) {
-	//debug('creating pyramid ' + id);
-    }
-    var pyramid = document.createElement("img");
-    pyramid.src = src;
-    pyramid.style.zIndex = 200;
-    pyramid.onload = function() {
-      if (this.width) {
-        this.width *= size;
-        this.points = new Array();
-        this.points.push(Vector.create([0, -this.height / 2]));
-        this.points.push(Vector.create([-this.width / 2,
-				        +this.height / 2]));
-        this.points.push(Vector.create([+this.width / 2,
-				        +this.height / 2]));
-      }
-    };
-    pyramid = new agImage(pyramid);
-    makeDraggable(pyramid);
-    pyramid.images = [src];
-    pyramid.baseZ = 200;
-    registerObject(pyramid, id);
-    pyramid.throwRandomly();
-    document.body.appendChild(pyramid.e);
-    if (!id) {
-	clientGame.outgoing("cp" + pyramid.name, src + " " + size);
-	pyramid.serialize();
-    }
-    return pyramid;
-}
-
-
 function handleIncoming(name, data) {
     if (name[0] == "i") {
 	if (objectsByName[name]) {
@@ -614,21 +567,6 @@ function handleIncoming(name, data) {
     }
     else {
 	alert("Unhandled object: " + name + ", " + data);
-    }
-}
-
-function createPyramidStash(color) {
-    for (var i = 0; i < 5; ++i) {
-	createPyramid("pyramid/" + color + "-pyramid.png", 1.00);
-	createPyramid("pyramid/" + color + "-pyramid-medium.png", 1.00);
-	createPyramid("pyramid/" + color + "-pyramid-small.png", 1.00);
-    }
-}
-
-function createPyramidStashes(color) {
-    var colors = "red yellow green blue".split(" ");
-    for (var i in colors) {
-	createPyramidStash(colors[i]);
     }
 }
 
@@ -740,7 +678,7 @@ function wantPyramids() {
     result.push('</tr><tr align="center">');
     for (var i in colors) {
 	result.push('<td><input type="checkbox" name="item" id="Pyr' + i 
-		    + '" value="createPyramidStash(\'' + colors[i] + '\')"></input></td>');
+		    + '" value="Pyramid.createStash(\'' + colors[i] + '\')"></input></td>');
     }
     result.push('</tr></table>Add some pyramid stashes.<br />');
     return result.join('');
