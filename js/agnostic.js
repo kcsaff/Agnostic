@@ -17,9 +17,6 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-document.onmousemove = mouseMove;
-document.onmouseup = mouseUp;
-
 var objectsByOrder = new Array();
 var objectsByName = new Object();
 
@@ -407,26 +404,47 @@ var betterAction = null;
 function doNothing(ev) {
 }
 
-function mouseCoords(ev) {
+var Mouse = new Object();
+Mouse.getCoords = function (ev) {
 	if (ev.pageX || ev.pageY) {
 		return Vector.create([ev.pageX, ev.pageY]);
 	}
 	return Vector.create([ev.clientX + document.body.scrollLeft - document.body.clientLeft,
 	                      ev.clientY + document.body.scrollTop - document.body.clientTop]);
-
 }
-
-var whichButton = [0, 'left', 'middle', 'right']; //most
-var buttonButton = ['left', 'left', 'right', 0, 'middle']; //IE
-
-function getButton(event) {
+Mouse._bwhich = [0, 'left', 'middle', 'right']; //most
+Mouse._bbutton = ['left', 'left', 'right', 0, 'middle']; //IE
+Mouse.getButton = function(event) {
     if (event.which) {
-        return whichButton[event.which];
-    }
-    else {
-        return buttonButton[event.button];
+        return Mouse._bwhich[event.which];
+    } else {
+        return Mouse._bbutton[event.button];
     }
 }
+Mouse.move = function(ev) {
+	ev = ev || window.event;
+	var mousePos = Mouse.getCoords(ev);
+	if (betterAction && Mouse.getButton(ev)) {
+	    var result = betterAction.move(mousePos);
+	    if (betterAction.object) {
+		betterAction.object.serialize();
+	    }
+	}
+}
+Mouse.down = function(ev) {
+}
+Mouse.up = function() {
+    if (betterAction && betterAction.drop) {
+	betterAction.drop();
+    }
+    if (betterAction && betterAction.object) {
+	betterAction.object.serialize();  
+    }
+    betterAction = null;
+    return false;
+}
+document.onmousemove = Mouse.move;
+document.onmouseup = Mouse.up;
 
 function moveToEnd(array, item) {
 	if (array.length < 1) return false;
@@ -490,31 +508,6 @@ function snapDegrees(deg, increment, closeness) {
 function snapRotation(object, increment, closeness) {
     object.setRotation(0, snapDegrees(object.currentRotation || 0, 
 						 increment, closeness));
-}
-
-function mouseMove(ev) {
-	ev = ev || window.event;
-	var mousePos = mouseCoords(ev);
-	if (betterAction && getButton(ev)) {
-	    var result = betterAction.move(mousePos);
-	    if (betterAction.object) {
-		betterAction.object.serialize();
-	    }
-	}
-}
-
-function mouseDown(ev) {
-}
-
-function mouseUp() {
-    if (betterAction && betterAction.drop) {
-	betterAction.drop();
-    }
-    if (betterAction && betterAction.object) {
-	betterAction.object.serialize();  
-    }
-    betterAction = null;
-    return false;
 }
 
 function randomLocation() {

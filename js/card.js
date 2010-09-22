@@ -65,7 +65,7 @@ Add a deck of standard playing cards.</input>';
 function dragArbitraryRotate(object, event) {
     result = {};
     result.object = object;
-    result.mouseFirstPos = mouseCoords(event);
+    result.mouseFirstPos = Mouse.getCoords(event);
     result.firstRotation = object.currentRotation || 0;
     result.move = function (mousePos) {
         newRotation = getRelativeRotation(this.object.getCenter(),
@@ -81,8 +81,8 @@ function dragArbitraryRotate(object, event) {
 function dragMoveAndRotate(object, event) {
     result = {};
     result.object = object;
-    result.offset = object.toLocalCoords(mouseCoords(event));
-    result.lastPos = mouseCoords(event);
+    result.offset = object.toLocalCoords(Mouse.getCoords(event));
+    result.lastPos = Mouse.getCoords(event);
     result.move = function (mousePos) {
         var thisTime = (new Date()).getTime();
 	if (Math.abs(this.offset.e(1)) < this.object.e.width / 4
@@ -222,19 +222,19 @@ function makeDraggable(item) {
 	if (!item) return;
         var self = item;
 	self.e.onmousedown = function(ev) {//TODO: circular reference.
-	    if (getButton(ev) == 'middle' 
-		|| (getButton(ev) == 'left' && ev.shiftKey)) {
+	    if (Mouse.getButton(ev) == 'middle' 
+		|| (Mouse.getButton(ev) == 'left' && ev.shiftKey)) {
 			betterAction = dragFlip(self, ev);
 		} 
-		else if (getButton(ev) == 'left') {
+		else if (Mouse.getButton(ev) == 'left') {
 			betterAction = dragMoveAndRotate(self, ev);
 		} else {
 			alert("" + self.getCenter().e(1) + " " + self.getCenter().e(2))
-			//alert("" + mouseCoords(ev).e(1) + " " + mouseCoords(ev).e(2));
+			//alert("" + Mouse.getCoords(ev).e(1) + " " + Mouse.getCoords(ev).e(2));
 		}
 		if (betterAction) {
 		    self.moveToFront();
-		    mouseMove(ev);
+		    Mouse.move(ev);
 		}
 		return false;
 	}
