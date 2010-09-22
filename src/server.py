@@ -1,10 +1,12 @@
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+from SocketServer import ThreadingMixIn
 import os.path
 import threading
 import re
 import cgi
 import traceback, sys
+import time
 
 class RSBP(object): #Really Simple Bounce Protocol
     SEP = '..'
@@ -14,9 +16,19 @@ class RSBP(object): #Really Simple Bounce Protocol
         self.lock = threading.RLock()
         self.objects = {'': [1, '..t1o-']}
         self.transactions = ['..t1o-']
+        self.signals = []
 
     def next_transaction(self):
         return self.transaction_offset + len(self.transactions)
+    
+    def all_signals(self):
+        the_time = time.time()
+        self.signals = [s for s in self.signals if s[-1] > the_time]
+        return [(a, b) for a, b, _ in self.signals]
+    
+    def all_data(self):
+        return ''.join([stored for _, stored in sorted(self.objects.values()
+                                                       + self.all_signals() )]) 
 
     def handle(self, data):
         print data
@@ -33,6 +45,13 @@ class RSBP(object): #Really Simple Bounce Protocol
                     store = '%st%d%s' % (RSBP.SEP, self.next_transaction(), item)
                     self.objects[item.split('-',1)[0]] = (self.next_transaction(), store)
                     self.transactions.append(store)
+                elif item.startswith('r'): #RefResh - Resend all cuRRent object data
+                    return self.all_data()
+                elif item.startswith('s'): #keep-alive Signal
+                    store = '%st%d%s' % (RSBP.SEP, self.next_transaction(), item)
+                    ttl = float(item[1:].split('-',1)[0])
+                    self.signals.append((self.next_transaction(), store, time.time() + ttl))
+                    self.transactions.append(store)
                 elif item.startswith('t'): #requesT TransacTions since lasT received
                     transaction = int(item[1:])
                     if (self.transaction_offset 
@@ -40,9 +59,7 @@ class RSBP(object): #Really Simple Bounce Protocol
                           < self.transaction_offset + len(self.transactions)):
                         return ''.join(self.transactions[transaction + 1 - self.transaction_offset:])
                     else: #RefResh - Resend all cuRRent object data
-                        return ''.join([stored for i, stored in sorted(self.objects.values())]) 
-                elif item.startswith('r'): #RefResh - Resend all cuRRent object data
-                    return ''.join([stored for i, stored in sorted(self.objects.values())]) 
+                        return self.all_data()
                 else:
                     print "Can't handle type %s" % item
                     #raw_input()
@@ -96,9 +113,12 @@ class Server(BaseHTTPRequestHandler):
             print e
             traceback.print_exc(file=sys.stdout)
             pass
+        
+class MultiThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    """Multi-threaded server"""
 
-def main():
-    server = HTTPServer(('', 80), Server)
+def main(port = 80):
+    server = MultiThreadedHTTPServer(('', port), Server)
     try:
         #print Server.rsbp.handle('comment..o5-Hello,..o7-World..r')
         #print Server.rsbp.handle('comment..o7-Monkey..o345-Dog..o7-chicken..t2')
@@ -107,4 +127,10 @@ def main():
         server.socket.close()
 
 if __name__ == '__main__':
-    main()
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option('-p', '--port', dest='port',
+                      help='serve on PORT', metavar='PORT',
+                      default=80)
+    options, args = parser.parse_args()
+    main(options.port)
