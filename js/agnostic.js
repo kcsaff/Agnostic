@@ -408,12 +408,11 @@ function registerClass(class, name) {
 }
 
 
-var betterAction = null;
-
 function doNothing(ev) {
 }
 
 var Mouse = new Object();
+Mouse.action = null;
 Mouse.getCoords = function (ev) {
 	if (ev.pageX || ev.pageY) {
 		return Vector.create([ev.pageX, ev.pageY]);
@@ -433,23 +432,23 @@ Mouse.getButton = function(event) {
 Mouse.move = function(ev) {
 	ev = ev || window.event;
 	var mousePos = Mouse.getCoords(ev);
-	if (betterAction && Mouse.getButton(ev)) {
-	    var result = betterAction.move(mousePos);
-	    if (betterAction.object) {
-		betterAction.object.serialize();
+	if (Mouse.action && Mouse.getButton(ev)) {
+	    var result = Mouse.action.move(mousePos);
+	    if (Mouse.action.object) {
+		Mouse.action.object.serialize();
 	    }
 	}
 }
 Mouse.down = function(ev) {
 }
 Mouse.up = function() {
-    if (betterAction && betterAction.drop) {
-	betterAction.drop();
+    if (Mouse.action && Mouse.action.drop) {
+	Mouse.action.drop();
     }
-    if (betterAction && betterAction.object) {
-	betterAction.object.serialize();  
+    if (Mouse.action && Mouse.action.object) {
+	Mouse.action.object.serialize();  
     }
-    betterAction = null;
+    Mouse.action = null;
     return false;
 }
 document.onmousemove = Mouse.move;

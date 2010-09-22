@@ -224,15 +224,15 @@ function makeDraggable(item) {
 	self.e.onmousedown = function(ev) {//TODO: circular reference.
 	    if (Mouse.getButton(ev) == 'middle' 
 		|| (Mouse.getButton(ev) == 'left' && ev.shiftKey)) {
-			betterAction = dragFlip(self, ev);
+			Mouse.action = dragFlip(self, ev);
 		} 
 		else if (Mouse.getButton(ev) == 'left') {
-			betterAction = dragMoveAndRotate(self, ev);
+			Mouse.action = dragMoveAndRotate(self, ev);
 		} else {
 			alert("" + self.getCenter().e(1) + " " + self.getCenter().e(2))
 			//alert("" + Mouse.getCoords(ev).e(1) + " " + Mouse.getCoords(ev).e(2));
 		}
-		if (betterAction) {
+		if (Mouse.action) {
 		    self.moveToFront();
 		    Mouse.move(ev);
 		}
