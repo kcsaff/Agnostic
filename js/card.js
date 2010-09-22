@@ -20,7 +20,7 @@
 var Card = extend
 (agImage, 
  function(front, back, id) {
-    agImage.apply(this, ["img", id]);
+    agImage.apply(this);
     this.e.src = front;
     makeDraggable(this);
     this.images = [front, back];

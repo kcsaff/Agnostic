@@ -314,17 +314,17 @@ function agnosticRSBP() {
 var rsbp = new agnosticRSBP();
 
 function agImage(eltype) {
-    this.e = document.createElement(eltype);
+    this.e = document.createElement(eltype || "img");
     this.e.style.position = "absolute";
     this.e.style.zIndex = 1;
     this.baseZ = 0;
 }
 agImage.prototype = {
-    finalize: function(desc, id) {
+    finalize: function(id, desc) {
 	registerObject(this, id);
 	this.display();
 	if (!id) {
-	    clientGame.outgoing("c" + this.class + this.name, desc);
+	    clientGame.outgoing("c" + this.class + "." + this.name, desc);
 	    this.serialize();
 	}
     },
@@ -426,7 +426,7 @@ agImage.prototype = {
 }
 var classRegistry = new Object();
 function registerClass(class, name) {
-    class.class = name;
+    class.prototype.class = name;
     classRegistry[name] = class;
 }
 
@@ -603,24 +603,12 @@ function handleIncoming(name, data) {
 	    alert(name + " not found!");
 	}
     } else if (name[0] == "c") {
-	var realname = name.slice(2);
-	if (name[1] == "c") {
-	    if (!objectsByName[realname]) {
-		var info = data.split(" ");
-		createCard(info[0], info[1], realname);
-	    } else {
-		//alert("Already created: " + name + ", " + data);
-	    }
-	}
-	else if (name[1] == "p") {
-	    if (!objectsByName[realname]) {
-		var info = data.split(" ");
-		createPyramid(info[0], info[1], realname);
-	    } else {
-		//alert("Already created: " + name + ", " + data);
-	    }
-	}
-	else {
+	var items = name.slice(1).split(".");
+	var class = items[0]
+	var id = items[1];
+	if (classRegistry[class]) {
+	    classRegistry[class].recreate(id, data);
+	} else {
 	    alert("Can't create: " + name + ", " + data);
 	}
     }
@@ -902,7 +890,7 @@ function mainTimer() {
 		+ id + '</a></td><td>current game</td></tr>';
 	}
 	if (serverGame && serverGame !== clientGame) {
-	    var id = clientGame.getId();
+	    var id = serverGame.getId();
 	    optionString += '<tr><td><a href="javascript:demandGameInfo(\'' + id + '\')">' 
 		+ id + '</a></td><td>remote game</td></tr>';
 	}
