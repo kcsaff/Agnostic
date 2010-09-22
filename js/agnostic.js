@@ -17,9 +17,6 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-var objectsByOrder = new Array();
-var objectsByName = new Object();
-
 var safeAlertCount = 5;
 function safeAlert(text) {
     if (safeAlertCount-- > 0) {
@@ -133,14 +130,14 @@ Game.changeClient = function(game, reason) {
     if (Game.client) {
 	//alert("Clearing all client data!");
     }
-    for (var i in objectsByName) {
-	var obj = objectsByName[i];
+    for (var i in agImage.byName) {
+	var obj = agImage.byName[i];
 	if (obj && obj.e && obj.e.parentNode) {
 	    obj.e.parentNode.removeChild(obj.e);
 	}
     }
-    objectsByOrder = new Array();
-    objectsByName = new Object();  
+    agImage.byOrder = new Array();
+    agImage.byName = new Object();  
 
     Game.client = game;
     game._join();
@@ -287,6 +284,8 @@ function agImage(eltype) {
     this.e.style.zIndex = 1;
     this.baseZ = 0;
 }
+agImage.byName = new Object();
+agImage.byOrder = new Array();
 agImage.prototype = {
     finalize: function(id, desc) {
 	agImage.registerObject(this, id);
@@ -350,8 +349,8 @@ agImage.prototype = {
         this.recenter(this.getCenter().add(vector));
     },
     moveToFront: function() {
-        if (moveToEnd(objectsByOrder, this)) {
-	    fixZOrder(objectsByOrder);
+        if (moveToEnd(agImage.byOrder, this)) {
+	    fixZOrder(agImage.byOrder);
 	} //else {safeAlert("huh?");}
     },
     incoming: function(data) {
@@ -398,18 +397,37 @@ agImage.get_next_id = function() {
 }
 agImage.registerObject = function(obj, name) {
     obj.name = name || agImage.get_next_id();
-    objectsByOrder.push(obj);
-    objectsByName[obj.name] = obj;
+    agImage.byOrder.push(obj);
+    agImage.byName[obj.name] = obj;
 }
 var classRegistry = new Object();
 function registerClass(class, name) {
     class.prototype.class = name;
     classRegistry[name] = class;
 }
-
-
-function doNothing(ev) {
+function handleIncoming(name, data) {
+    if (name[0] == "i") {
+	if (agImage.byName[name]) {
+	    agImage.byName[name].incoming(data);
+	} else {
+	    alert(name + " not found!");
+	}
+    } else if (name[0] == "c") {
+	var items = name.slice(1).split(".");
+	var class = items[0]
+	var id = items[1];
+	if (classRegistry[class]) {
+	    classRegistry[class].recreate(id, data);
+	} else {
+	    alert("Can't create: " + name + ", " + data);
+	}
+    }
+    else {
+	alert("Unhandled object: " + name + ", " + data);
+    }
 }
+
+//////////// MOUSE
 
 var Mouse = new Object();
 Mouse.action = null;
@@ -514,28 +532,6 @@ function randomLocation() {
                           parseInt(Math.random() * (window.innerHeight - 200) + 100)]);
 }
 
-function handleIncoming(name, data) {
-    if (name[0] == "i") {
-	if (objectsByName[name]) {
-	    objectsByName[name].incoming(data);
-	} else {
-	    alert(name + " not found!");
-	}
-    } else if (name[0] == "c") {
-	var items = name.slice(1).split(".");
-	var class = items[0]
-	var id = items[1];
-	if (classRegistry[class]) {
-	    classRegistry[class].recreate(id, data);
-	} else {
-	    alert("Can't create: " + name + ", " + data);
-	}
-    }
-    else {
-	alert("Unhandled object: " + name + ", " + data);
-    }
-}
-
 var _demands = new Object();
 var _demandps = new Object();
 
@@ -614,14 +610,13 @@ function _show_demands() {
     inner.style.left = 0;
     document.body.appendChild(inner);
     inner.style.top = (window.innerHeight / 2 - inner.height / 2) + 'px';
-    //document.body.appendChild(inner);
 }
 
-function startNewServerGame() {
+function startNewGame(isServer) {
     var wants = '\
 Add some game elements to begin.\
 <form id="questions" action="" method="GET" \
-onSubmit="return createNewServerGame(this)">';
+onSubmit="return createNewGame(this, ' + isServer + ')">';
     for (var c in classRegistry) {
 	wants += '<br />' + classRegistry[c].createForm() + '<br />';
     }
@@ -630,36 +625,11 @@ onSubmit="return createNewServerGame(this)">';
     undemand("connection");
 }
 
-function createNewServerGame(form) {
+function createNewGame(form, isServer) {
     Game.changeClient(Game.create(), "you started a new game");
-    Game.changeServer(Game.client, "you started a new game");
-    demand("creating", 7, "Please wait, building game...");
-    undemand("create");
-    for (var i in form.item) {
-	if (form.item[i].checked) {
-	    eval(form.item[i].value); //yikes!
-	}
+    if (isServer) {
+	Game.changeServer(Game.client, "you started a new game");
     }
-    undemand("creating");
-    return false;
-}
-
-function startNewSolitaireGame() {
-    var wants = '\
-Add some game elements to begin.\
-<form id="questions" action="" method="GET" \
-onSubmit="return createNewSolitaireGame(this)">';
-    for (var c in classRegistry) {
-	wants += '<br />' + classRegistry[c].createForm() + '<br />';
-    }
-    wants += '<br /><input type="submit" value="Done." />';
-    demand("create", 6, wants);
-    undemand("connection");
-}
-
-function createNewSolitaireGame(form) {
-    Game.changeClient(Game.create(), "you started a new game");
-    //Game.changeServer(Game.client);
     demand("creating", 7, "Please wait, building game...");
     undemand("create");
     for (var i in form.item) {
@@ -717,7 +687,7 @@ function mainTimer() {
 		optionString += '<br />\
 <form>\
 <label for="startNew">No game in progress:</label>&nbsp;&nbsp;\
-<input type="button" value="Start new game" id="startNew" onClick="startNewServerGame()" />\
+<input type="button" value="Start new game" id="startNew" onClick="startNewGame(true)" />\
 </form>\
 ';
 	    }
@@ -731,7 +701,7 @@ function mainTimer() {
 	} else {
 		optionString += '<br />\
 <form>\
-<input type="button" value="Start new solitaire game" onClick="startNewSolitaireGame()" />\
+<input type="button" value="Start new solitaire game" onClick="startNewGame(false)" />\
 </form>\
 ';
 	}
