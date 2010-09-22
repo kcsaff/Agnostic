@@ -37,19 +37,9 @@ function debug(text, refresh) {
 function Game() {
     this.objects = new Object();
     this.pending = new Object();
-    this.signals = new Object();
-    this.keepalives = new Object();
-    this.last_keepalive = null;
     this.transaction = 0;
 }
 Game.prototype = {
-    signal: function(ttl, key) {
-	    this.signals[key] = (new Date()).getTime() + ttl * 1e3;
-    },
-    keepalive: function(key) {
-    	safeAlert(key);
-    	this.keepalives[key] = true;
-    },
     incoming: function(key, data, /*optional*/maintain_pending) {
         if (!this.pending[key]) {
             this.objects[key] = [this.transaction++, data];
@@ -92,9 +82,6 @@ Game.prototype = {
         }
         for (var i in arr) {
             result.push("..o" + arr[i][1] + "-" + arr[i][0][1]);
-        }
-        for (var i in this.keepalives) {
-        	result.push("..s5-" + i);
         }
         return result.join("");
     },
@@ -216,11 +203,8 @@ function agnosticRSBP() {
 	            } else if (!payload) {
 	                Game.changeServer(null, "the server rebooted");
 	            }
-            } else if (meta[ds2] == 's') {
-            	var ttl = parseInt(meta.slice(ds2 + 1))
-            	if (Game.server) {
-            		Game.server.signal(ttl, payload)
-            	}
+            } else {
+            	safeAlert("Unknown data type " + meta[ds2]);
             }
         }
         if (this.after) {
@@ -465,14 +449,21 @@ var User = extend
     agImage.apply(this);
     this.name = name;
     delete this.e;
-    if (!id) {
-    	Game.client.keepalive(name);
-    }
+    this.isPlayer = !id; //is current player if no ID was predefined.
     this.finalize(id, name);
 },
  {
 	display: function() {},
-	serialize: function() {},
+	serialize: function() {
+		Game.client.outgoing(this.id, this.isPlayer ? this.name : '');
+	},
+	incoming: function(data) {
+		if (this.isPlayer && data == '') {
+			this.serialize(); //yes, I'm still alive.
+		} else if (this.isPlayer && data != this.name) {
+			alert("Someone stole your position!"); //shouldn't happen... right?
+		}
+	}
  }
  );
 User.recreate = function(id, name) {

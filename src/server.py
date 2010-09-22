@@ -6,7 +6,6 @@ import threading
 import re
 import cgi
 import traceback, sys
-import time
 
 class RSBP(object): #Really Simple Bounce Protocol
     SEP = '..'
@@ -16,19 +15,12 @@ class RSBP(object): #Really Simple Bounce Protocol
         self.lock = threading.RLock()
         self.objects = {'': [1, '..t1o-']}
         self.transactions = ['..t1o-']
-        self.signals = []
 
     def next_transaction(self):
         return self.transaction_offset + len(self.transactions)
     
-    def all_signals(self):
-        the_time = time.time()
-        self.signals = [s for s in self.signals if s[-1] > the_time]
-        return [(a, b) for a, b, _ in self.signals]
-    
     def all_data(self):
-        return ''.join([stored for _, stored in sorted(self.objects.values()
-                                                       + self.all_signals() )]) 
+        return ''.join([stored for _, stored in sorted(self.objects.values())]) 
 
     def handle(self, data):
         print data
@@ -45,11 +37,6 @@ class RSBP(object): #Really Simple Bounce Protocol
                     self.transactions.append(store)
                 elif item.startswith('r'): #RefResh - Resend all cuRRent object data
                     return self.all_data()
-                elif item.startswith('s'): #keep-alive Signal
-                    store = '%st%d%s' % (RSBP.SEP, self.next_transaction(), item)
-                    ttl = float(item[1:].split('-',1)[0])
-                    self.signals.append((self.next_transaction(), store, time.time() + ttl))
-                    self.transactions.append(store)
                 elif item.startswith('t'): #requesT TransacTions since lasT received
                     transaction = int(item[1:])
                     if (self.transaction_offset 
