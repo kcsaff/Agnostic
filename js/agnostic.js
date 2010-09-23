@@ -299,6 +299,64 @@ function agnosticRSBP() {
 
 var rsbp = new agnosticRSBP();
 
+function agObject(/*optional*/ id) {
+	this.finalize(id);
+}
+agObject.byId = new Object();
+agobject.classes = new Array();
+agObject.nextId = 1;
+agObject.prototype = {
+    finalize: function(id) {
+    	this.id = id || this.generateId();
+    	agObject.byId[this.id] = this;
+    	if (!id) {
+    		this.createSerialize();
+    	}
+    },
+    createSerialize: function() {
+    	Game.client.outgoing(this.id + '.create', this.createSerialization())
+    },
+    createSerialization: function() {
+    	return this.class.name + ''; //should probably be overridden by subclasses.
+    },
+    createDeserialize: function(data) {
+    	var class = data.split(" ", 1)[0];
+    	agObject[class].specialize(this, data.split(" ", 2)[1]);
+    },
+    serialize: function() {
+    },
+    deserialize: function(subid, data) {
+    	if (this[subid + 'Deserialize']) {
+    		this[subid + 'Deserialize'](data);
+    	} else {
+    		this[subid] = data;
+    	}
+    },
+    generateId: function() {
+    	return rsbp.id + '.' + agObject.nextId++;
+    }
+}
+agObject.registerClass(class, name) {
+    class.prototype.class = name;
+    agObject.classes[name] = class;
+}
+agObject.get(id) {
+	return agObject.byId[id];
+}
+agObject.getOrCreate(id) {
+	if (!agObject.byId[id]) {
+		agObject.byId[id] = new agObject(id);
+	}
+	return agObject.byId[id];
+}
+agObject.deserialize(id, data) {
+	var idParts = id.split('.'); 
+	var property = idParts.pop(); //only one level of properties.
+	var realId = idParts.join('.');
+	var obj = agObject.getOrCreate(realId);
+	obj.deserialize(property, data);
+}
+
 function agImage(eltype) {
     this.e = document.createElement(eltype || "img");
     this.e.style.position = "absolute";
