@@ -10,46 +10,88 @@ import traceback, sys
 class RSBP(object): #Really Simple Bounce Protocol
     SEP = '..'
     transaction_offset = 1
-    
+    id_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    MIN_TRANSACTIONS = 1000
+    MAX_TRANSACTIONS = 2000
+     
     def __init__(self):
         self.lock = threading.RLock()
-        self.objects = {'': [1, '..t1o-']}
-        self.transactions = ['..t1o-']
+        self.objects = {}
+        self.transactions = []
+        self.unique_id = 0
+        self.delete_id = ''
 
     def next_transaction(self):
         return self.transaction_offset + len(self.transactions)
     
+    def check_transactions(self):
+        if len(self.transactions) > self.MAX_TRANSACTIONS:
+            self.transaction_offset += len(self.transactions) - self.MIN_TRANSACTIONS
+            self.transactions = self.transaction[-self.MIN_TRANSACTIONS:]
+    
     def all_data(self):
         return ''.join([stored for _, stored in sorted(self.objects.values())]) 
+    
+    def next_unique_id(self):
+        self.unique_id += 1
+        result = []
+        id = self.unique_id
+        while id:
+            id, char = divmod(id, len(self.id_chars))
+            result.append(self.id_chars[char])
+        return ''.join(result)
 
     def handle(self, data):
         print data
         #raw_input()
         with self.lock:
+            self.check_transactions()
             for item in data.split(RSBP.SEP)[1:]:
-                if item.startswith('n'): #New game, clear all data
-                    self.objects = {}
-                    self.transaction_offset = 1
-                    self.transactions = []
+                if item.startswith('d'): #Delete storeD object Data
+                    dead = item.split('-',1)[0][1:]
+                    if not dead:
+                        self.delete_id = item.split('-', 1)[1]
+                    for key in list(self.objects.keys()):
+                        if key.startswith(dead):
+                            del self.objects[key]
+                    self.transactions.append('%st%d%s' % (RSBP.SEP, self.next_transaction(), item))
                 elif item.startswith('o'): #stOre Object data
                     store = '%st%d%s' % (RSBP.SEP, self.next_transaction(), item)
                     self.objects[item.split('-',1)[0]] = (self.next_transaction(), store)
                     self.transactions.append(store)
-                elif item.startswith('r'): #RefResh - Resend all cuRRent object data
-                    return self.all_data()
                 elif item.startswith('t'): #requesT TransacTions since lasT received
                     transaction = int(item[1:])
-                    if (self.transaction_offset 
-                          <= transaction 
-                          < self.transaction_offset + len(self.transactions)):
+                    if self.transaction_offset <= transaction:
                         return ''.join(self.transactions[transaction + 1 - self.transaction_offset:])
                     else: #RefResh - Resend all cuRRent object data
-                        return self.all_data()
+                        return ('%st0d-%s' % (RSBP.SEP, self.delete_id)) + self.all_data()
+                elif item.startswith('u'): #UniqUe id reqUest
+                    return '..u' + self.next_unique_id()
                 else:
                     print "Can't handle type %s" % item
                     #raw_input()
             return ''
 
+
+def to_table(data):
+    result = ['<table>']
+    for row in data:
+        result.append('<tr>')
+        for col in row:
+            result.append('<td>')
+            result.append(str(col))
+            result.append('</td>')
+        result.append('</tr>')
+    result.append('</table>')
+    return '\n'.join(result)
+
+def to_html(title, text):
+    result = ['<html><head><title>']
+    result.append(title)
+    result.append('</title></head><body>')
+    result.append(str(text))
+    result.append('</body></html>')
+    return '\n'.join(result)
 
 class FileNotFound(object):
     pass
@@ -70,6 +112,20 @@ class Server(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path = self.path.lstrip('/.')
+            if path in ['o', 't']:
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                if path == 'o':
+                    data = self.rsbp.objects.items()
+                    title = 'objects'
+                elif path == 't':
+                    data = enumerate(self.rsbp.transactions)
+                    title = 'transactions'
+                self.wfile.write(to_html(title, to_table(data)))
+                return
+                
+            
             path = os.path.join(self.paths[os.path.dirname(path)], os.path.basename(path))
             type_ = os.path.splitext(path)[1]
             if type_ not in self.types:

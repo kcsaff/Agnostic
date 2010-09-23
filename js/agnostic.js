@@ -18,8 +18,8 @@
 */
 
 var safeAlertCount = 5;
-function safeAlert(text) {
-    if (safeAlertCount-- > 0) {
+function safeAlert(text, /*optional*/ignored) {
+    if (text != ignored && safeAlertCount-- > 0) {
         alert(text);
     }
 }
@@ -78,7 +78,7 @@ Game.prototype = {
         arr.sort(function(a,b){return a[0][0]-b[0][0];});
         var result = new Array();
         if (all) {
-            result.push("..n");
+            result.push("..d-" + rsbp.id);
         }
         for (var i in arr) {
             result.push("..o" + arr[i][1] + "-" + arr[i][0][1]);
@@ -86,12 +86,12 @@ Game.prototype = {
         return result.join("");
     },
     upload: function() {
-        changeServerGame(this, "you uploaded a different game");
+        Game.changeServer(this, "you uploaded a different game");
         rsbp.write(this.generate(true));
     },
     getId: function() {
         if (this.objects[''] && this.objects[''][1]) {
-            return this.objects[''][1].slice(4);
+            return this.objects[''][1];
         } else {
             return (new Date()).getTime() + "?";
         }
@@ -104,7 +104,7 @@ Game.prototype = {
     reset: function(reason) {
     	if (this === Game.server) {
     		Game.changeServer(null, reason);
-    		rsbp.write('..n..o-');
+    		rsbp.write('..d-');
     	}
     	if (this === Game.client) {
     		Game.clearBoard();
@@ -115,7 +115,7 @@ Game.prototype = {
 }
 Game.create = function() {
     var game = new Game();
-    game.outgoing('', 'new ' + (new Date()).getTime() );
+    game.outgoing('', (new Date()).getTime() );
     return game;
 }
 Game.backups = new Object();
@@ -127,6 +127,7 @@ Game.ensureSaved = function(game, reason) {
 }
 Game.changeServer = function(game, reason) {
     if (game === Game.server) {return;}
+	debug('change server ' + Game.server + ' to ' + game + ' by ' + reason)
     Game.ensureSaved(Game.server, reason);
     if (Game.server === Game.client) {
         demandConnectionScreen();
@@ -135,6 +136,7 @@ Game.changeServer = function(game, reason) {
 }
 Game.changeClient = function(game, reason) {
     if (game === Game.client) {return;}
+	debug('change client ' + Game.server + ' to ' + game + ' by ' + reason)
     Game.ensureSaved(Game.client, reason);
 
     Game.clearBoard();
@@ -156,7 +158,7 @@ Game.player = null;
 
 function agnosticRSBP() {
     var rsbp = new Object();
-    rsbp.last_transaction = undefined;
+    rsbp.last_transaction = 0;
     rsbp.loop = false;
     rsbp.written = new Array();
     rsbp.minimum_wait = 100;
@@ -166,6 +168,7 @@ function agnosticRSBP() {
     rsbp.first_connection = null;
     rsbp.last_connection = null;
     rsbp.unsent_data = null;
+    rsbp.id = null;
     rsbp.isConnected = function() {
         return this.last_connection && (this.getDisconnectionTime() < 5.0);
     }
@@ -181,29 +184,35 @@ function agnosticRSBP() {
     rsbp.apply = function(data) {
         var parts = data.split("..");
         for (var i = 1;/*ignore before first separator*/ i < parts.length; ++i) {
+        	if (parts[i][0] == 'u') {
+        		this.id = parts[i].slice(1);
+        		continue;
+        	}
             var ds1 = parts[i].indexOf("-");
             var meta = parts[i].slice(0, ds1);
             var payload = parts[i].slice(ds1 + 1);
-            var ds2 = meta.search("[os]");
+            var ds2 = meta.search("[od]");
             var transaction = parseInt(meta.slice(1, ds2));
             this.last_transaction = transaction;
-            if (meta[ds2] == 'o') {
-	            var objectName = meta.slice(ds2 + 1);
-	            if (Game.server && objectName) {
-	                if (!Game.client) {
-	                    Game.client = Game.server;
-	                }
-	                Game.server.incoming(objectName, payload);
-	            } else if (payload.slice(0,3) == 'new') {
-	                if (!Game.server || Game.server.objects[''][1] != payload) {
-	                    Game.changeServer(new Game(), "someone else started a game");
-	                } 
-	                if (Game.server) {
-	                    Game.server.incoming(objectName, payload);
-	                }
-	            } else if (!payload) {
-	                Game.changeServer(null, "the server rebooted");
-	            }
+        	var objectName = meta.slice(ds2 + 1);
+            if (meta[ds2] == 'd') {
+            	if (!objectName) {
+            		if (payload != this.id) {
+                		safeAlert(parts[i], 't0d-');
+            			Game.changeServer(null, payload || "connection was lost");
+            		}
+            	} else {
+            		Game.server.remove(objectName, payload);
+            	}
+            } else if (meta[ds2] == 'o') {
+            	if (!Game.server) {
+            		safeAlert("Created new server game");
+            		Game.changeServer(new Game(), "a game started");
+            	}
+                if (!Game.client) {
+                    Game.client = Game.server;
+                }
+	            Game.server.incoming(objectName, payload);
             } else {
             	safeAlert("Unknown data type " + meta[ds2]);
             }
@@ -218,13 +227,9 @@ function agnosticRSBP() {
         this.written = new Array();
         if (Game.server) {
             result.push(Game.server.generate(false));
-            if (this.last_transaction) {
-                result.push("..t" + this.last_transaction);
-            } else {
-                result.push("..r");
-            }
+            result.push("..t" + this.last_transaction);
         } else {
-            result.push("..r");
+            result.push("..t0");
         }
         result.push("\n");
         return result.join("");
@@ -235,7 +240,6 @@ function agnosticRSBP() {
     rsbp.do_write = function(data) {
         var http = new XMLHttpRequest();
         var rsbp = this;
-        //if (data && data != '..r') {debug('sent: ' + data);}
         data = data || this.unsent_data;
         this.unsent_data = data;
         http.open("POST", rsbp.server || "RSBP", true);
@@ -280,7 +284,11 @@ function agnosticRSBP() {
         http.send(data);
     }
     rsbp.poll = function() {
-        this.do_write(this.generate(false));
+    	if (!this.id) {
+    		this.do_write("..u\n");
+    	} else {
+    		this.do_write(this.generate(false));
+    	}
     }
     rsbp.poll_forever = function() {
         this.loop = true;
@@ -777,6 +785,7 @@ onSubmit="return createNewGame(this, ' + isServer + ')">';
 function createNewGame(form, isServer) {
     Game.changeClient(Game.create(), "you started a new game");
     if (isServer) {
+    	rsbp.write('..d-' + rsbp.id);
         Game.changeServer(Game.client, "you started a new game");
     }
     demand("creating", 7, "Please wait, building game...");
@@ -804,9 +813,9 @@ function continueGame() {
 var count = 0;
 
 function mainTimer() {
-    debug(count++, true);
-    debug(Game.server);
-    debug(Game.client === Game.server);
+    //debug(count++, true);
+    //debug(Game.server);
+    //debug(Game.client === Game.server);
     if (!rsbp.isConnected()) {
         demandConnectionScreen();
     }
