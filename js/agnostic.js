@@ -152,6 +152,7 @@ Game.clearBoard = function() {
     agImage.byOrder = new Array();
     agImage.byName = new Object();  
 }
+Game.player = null;
 
 function agnosticRSBP() {
     var rsbp = new Object();
@@ -364,7 +365,7 @@ agImage.prototype = {
     moveToFront: function() {
         if (moveToEnd(agImage.byOrder, this)) {
             fixZOrder(agImage.byOrder);
-        } //else {safeAlert("huh?");}
+        } 
     },
     incoming: function(data) {
         this.moveToFront();
@@ -402,14 +403,14 @@ agImage.prototype = {
     },
     display: function() {
         document.body.appendChild(this.e);
+    },
+    generateId: function() {
+	return "i" + agImage._next_id++;
     }
 }
 agImage._next_id = 1;
-agImage.get_next_id = function() {
-    return "i" + agImage._next_id++;
-}
-agImage.registerObject = function(obj, name) {
-    obj.id = name || agImage.get_next_id();
+agImage.registerObject = function(obj, id) {
+    obj.id = id || obj.generateId();
     if (this.e) {
     	agImage.byOrder.push(obj);
     }
@@ -421,7 +422,7 @@ function registerClass(class, name) {
     classRegistry[name] = class;
 }
 function handleIncoming(name, data) {
-    if (name[0] == "i") {
+    if (name[0] == "i" || name[0] == "u") {
         if (agImage.byName[name]) {
             agImage.byName[name].incoming(data);
         } else {
@@ -445,29 +446,78 @@ function handleIncoming(name, data) {
 
 var User = extend
 (agImage, 
- function(name, id) {
+ function(name, /*optional*/id) {
     agImage.apply(this);
     this.name = name;
     delete this.e;
     this.isPlayer = !id; //is current player if no ID was predefined.
+    this.options = new Object();
     this.finalize(id, name);
+    this.active = true;
 },
  {
-	display: function() {},
-	serialize: function() {
-		Game.client.outgoing(this.id, this.isPlayer ? this.name : '');
-	},
-	incoming: function(data) {
-		if (this.isPlayer && data == '') {
-			this.serialize(); //yes, I'm still alive.
-		} else if (this.isPlayer && data != this.name) {
-			alert("Someone stole your position!"); //shouldn't happen... right?
-		}
+    display: function() {},
+    serialize: function() {
+	this.active = this.isPlayer;
+	Game.client.outgoing(this.id, this.isPlayer ? this.name : '');
+    },
+    incoming: function(data) {
+	if (this.isPlayer && data == '') {
+	    this.serialize(); //yes, I'm still alive.
+	} else if (this.isPlayer && data != this.name) {
+	    alert("Someone stole your position!"); //shouldn't happen... right?
+	} else if (data != '') {
+	    this.active = true;
 	}
+    },
+    generateId: function() {
+        return User.generateId(this.name);
+    },
+    setOption: function(opt, value) {
+	if (!this.options[opt] || this.options[opt] != value) {
+	    this.options[opt] = value;
+	    Game.client.outgoing("cUser." + this.id + "." + opt, value);
+	} 
+    }
  }
  );
-User.recreate = function(id, name) {
-    return new User(name, id);
+User.generateId = function(name) {
+    return "u" + encodeURIComponent(name);
+}
+User.recreate = function(id, data) {
+    if (!id) {//Request to everyone to create user objects.
+	if (!Game.client.player || Game.client.player.creator != data) {
+	    demandPlayer(data.split(" "));
+	} 
+    } else if (id.indexOf(".") == -1) {//Foreign user object. Data == name
+	return new User(data, id);
+    } else {//Data about user
+	var uid = id.split(".", 1)[0];
+	var opt = id.split(".", 2)[1];
+	agImage.byName[uid].options[opt] = data;
+    }
+}
+User.startUp = function() {
+    if (User.required.length) {
+	Game.client.outgoing("cUser.", User.required.join(" "));
+	demandPlayer(User.required);
+	User.required = new Array();
+    }
+}
+User.required = new Array();
+User.require = function(what) {
+    User.required.push(what);
+}
+User.checkNames = function() {
+    for (var id in agImage.byName) {
+	if (id[0] == "u") {//is a user ID.
+	    agImage.byName[id].serialize(); //advertise whether exists or no.
+	}
+    }
+}
+User.isNameInUse = function(name) {//should have called checkNames sometime previous.
+    var id = User.generateId(name);
+    return agImage.byName[id] && agImage.byName[id].active;
 }
 registerClass(User, "User");
 
@@ -657,6 +707,52 @@ function _show_demands() {
     inner.style.top = (window.innerHeight / 2 - inner.height / 2) + 'px';
 }
 
+function satisfyPlayer(form, data) {
+    var data = data.split(" ");
+    var errors = new Array();
+    var name = form.username.value;
+    if (!name || name == "") {
+	errors.push("(Please enter a user name.)");
+    } else if (User.isNameInUse(name)) {
+	errors.push('(Somebody is already using the name "' + name + '".)');
+    }
+    for (var c in data) {
+    	if (classRegistry[data[c]].verifyPlayerForm) {
+    	    var error = classRegistry[data[c]].verifyPlayerForm(form);
+	    if (error != "") {
+		errors.push(error);
+	    }
+    	}	
+    }
+    if (errors.length && document.getElementById("errors")) {
+	document.getElementById("errors").innerHTML = errors.join("<br />");
+    } else {
+	new User(name);
+	undemand("player");
+    }
+    return false;
+}
+
+function demandPlayer(data) {
+    User.checkNames();
+    var wants = '\
+Just answer a question or two and you can enter the game.\
+<br /><form id="questions" action="" method="GET" \
+onSubmit="return satisfyPlayer(this, \'' + data.join(" ") + '\')">';
+    wants += '\
+<label for="wantUsername">What would you like to be called?</label>\
+<input type="text" id="wantUsername" name="username" />';
+    for (var c in data) {
+    	if (classRegistry[data[c]].playerForm) {
+    	    wants += '<br />' + classRegistry[data[c]].playerForm() + '<br />';
+    	}
+    }
+    wants += '<br /><input type="submit" value="Done." /></form>\
+<div id="errors"></div>';
+    demand("player", 10, wants);
+    undemand("connection");
+}
+
 function startNewGame(isServer) {
     var wants = '\
 Add some game elements to begin.\
@@ -667,7 +763,7 @@ onSubmit="return createNewGame(this, ' + isServer + ')">';
     		wants += '<br />' + classRegistry[c].createForm() + '<br />';
     	}
     }
-    wants += '<br /><input type="submit" value="Done." />';
+    wants += '<br /><input type="submit" value="Done." /></form>';
     demand("create", 6, wants);
     undemand("connection");
 }
@@ -684,8 +780,8 @@ function createNewGame(form, isServer) {
             eval(form.item[i].value); //yikes!
         }
     }
+    User.startUp();
     undemand("creating");
-    new User("kevin");
     return false;
 }
 
@@ -706,7 +802,6 @@ function mainTimer() {
     debug(Game.client === Game.server);
     if (!rsbp.isConnected()) {
         demandConnectionScreen();
-        //safeAlert("disconnected");
     }
     if (document.getElementById("connectionStatus")) {
         var connectionString = "";
