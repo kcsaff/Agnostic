@@ -458,15 +458,17 @@ var User = extend
  {
     display: function() {},
     serialize: function() {
-	this.active = this.isPlayer;
+	this.active = this.isPlayer; safeAlert("Set " + this.name + " " + this.active + this.isPlayer);
 	Game.client.outgoing(this.id, this.isPlayer ? this.name : '');
     },
     incoming: function(data) {
 	if (this.isPlayer && data == '') {
+	    safeAlert(this.name + " still alive");
 	    this.serialize(); //yes, I'm still alive.
 	} else if (this.isPlayer && data != this.name) {
 	    alert("Someone stole your position!"); //shouldn't happen... right?
 	} else if (data != '') {
+	    //safeAlert(data);
 	    this.active = true;
 	}
     },
@@ -736,11 +738,11 @@ function satisfyPlayer(form, data) {
 function demandPlayer(data) {
     User.checkNames();
     var wants = '\
-Just answer a question or two and you can enter the game.\
+<div>Just answer a question or two and you can enter the game.</div>\
 <br /><form id="questions" action="" method="GET" \
 onSubmit="return satisfyPlayer(this, \'' + data.join(" ") + '\')">';
     wants += '\
-<label for="wantUsername">What would you like to be called?</label>\
+<label for="wantUsername">What would you like to be called?&nbsp;&nbsp;</label>\
 <input type="text" id="wantUsername" name="username" />';
     for (var c in data) {
     	if (classRegistry[data[c]].playerForm) {
@@ -749,8 +751,8 @@ onSubmit="return satisfyPlayer(this, \'' + data.join(" ") + '\')">';
     }
     wants += '<br /><input type="submit" value="Done." /></form>\
 <div id="errors"></div>';
-    demand("player", 10, wants);
-    undemand("connection");
+    demand("player", 2, wants);
+    //undemand("connection");
 }
 
 function startNewGame(isServer) {
@@ -787,6 +789,7 @@ function createNewGame(form, isServer) {
 
 function joinGameInProgress() {
     Game.server.join();
+    User.checkNames();
     undemand("connection"); //drop out of connection screen.
 }
 
@@ -873,7 +876,7 @@ function mainTimer() {
 setInterval(mainTimer, 1e3);
 
 demandConnectionScreen = function() {
-    demand("connection", 2, '\
+    demand("connection", 3, '\
 <div id="connectionStatus">\
 Please wait: determining connection status.\
 </div>\
