@@ -729,7 +729,11 @@ function satisfyPlayer(form, data) {
     if (errors.length && document.getElementById("errors")) {
 	document.getElementById("errors").innerHTML = errors.join("<br />");
     } else {
-	new User(name);
+	if (agImage.byName[User.generateId(name)]) {
+	    agImage.byName[User.generateId(name)].isPlayer = true;
+	} else {
+	    new User(name);
+	}
 	undemand("player");
     }
     return false;
