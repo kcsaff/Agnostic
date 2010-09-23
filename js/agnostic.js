@@ -103,12 +103,12 @@ Game.prototype = {
     },
     reset: function(reason) {
     	if (this === Game.server) {
-    		Game.changeServer(null, reason);
+    		Game.changeServer(null, reason || 'reset');
     		rsbp.write('..d-');
     	}
     	if (this === Game.client) {
     		Game.clearBoard();
-    		Game.changeClient(null, reason);
+    		Game.changeClient(null, reason || 'reset');
     	}
     	Game.apply(this);
     }
@@ -198,7 +198,6 @@ function agnosticRSBP() {
             if (meta[ds2] == 'd') {
             	if (!objectName) {
             		if (payload != this.id) {
-                		safeAlert(parts[i], 't0d-');
             			Game.changeServer(null, payload || "connection was lost");
             		}
             	} else {
