@@ -111,7 +111,7 @@ if __name__ == '__main__':
     parser.add_option('--threaded', dest='threaded',
                       action='store_true',
                       help='run the server in multithreading mode',
-                      default=False)
+                      default=True)
     parser.add_option('--no-threads', dest='threaded',
                       action='store_false',
                       help='run the server in single threaded mode')

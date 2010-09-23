@@ -411,7 +411,7 @@ agImage.prototype = {
 agImage._next_id = 1;
 agImage.registerObject = function(obj, id) {
     obj.id = id || obj.generateId();
-    if (this.e) {
+    if (obj.e) {
     	agImage.byOrder.push(obj);
     }
     agImage.byName[obj.id] = obj;
@@ -588,7 +588,7 @@ function moveToEnd(array, item) {
 }
 
 function fixZOrder(array) {
-    for (var i = 0; i < array.length; ++i) {
+    for (var i in array) {
         array[i].e.style.zIndex = (array[i].baseZ || 0) + i;
     }
 }
