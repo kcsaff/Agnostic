@@ -38,7 +38,7 @@ var Pyramid = extend
 Pyramid.recreate = function(id, desc) {
     return new Pyramid(desc, id);
 }
-registerClass(Pyramid, "Pyramid");
+agObject.registerClass(Pyramid, "Pyramid");
 
 Pyramid.createStash = function(color) {
     for (var i = 0; i < 5; ++i) {

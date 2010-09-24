@@ -20,7 +20,7 @@
 var Card = extend
 (agImage, 
  function(front, back, id) {
-    agImage.apply(this);
+    agImage.apply(this, [id]);
     this.e.src = front;
     makeDraggable(this);
     this.images = [front, back];
@@ -28,16 +28,20 @@ var Card = extend
     if (Math.random() < 0.33) {
     	this.flip();
     }
-    this.finalize(id, front + " " + back);
 },
  {
+    createSerialization: function() {
+		return this.images.join(" "); 
+	},
  }
  );
-Card.recreate = function(id, desc) {
-    var images = desc.split(" ");
-    return new Card(images[0], images[1], id);
+agObject.registerClass(Card, "Card");
+Card.specialize = function(obj, data) {
+	var images = desc.split(" ");
+	return new Card(images[0], images[1], obj.id);
 }
-registerClass(Card, "Card");
+
+
 
 Card.createDeck = function(jokers) {
     var suits = "clubs diamonds hearts spades".split(" ");

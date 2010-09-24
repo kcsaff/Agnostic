@@ -44,7 +44,7 @@ Game.prototype = {
         if (!this.pending[key]) {
             this.objects[key] = [this.transaction++, data];
             if (this === Game.client) {
-            	handleIncoming(key, data);
+            	agObject.deserialize(key, data);
             }
         } else if (!maintain_pending && this.objects[key][1] == data) {
             this.pending[key] = false;
@@ -205,7 +205,6 @@ function agnosticRSBP() {
             	}
             } else if (meta[ds2] == 'o') {
             	if (!Game.server) {
-            		safeAlert("Created new server game");
             		Game.changeServer(new Game(), "a game started");
             	}
                 if (!Game.client) {
@@ -300,30 +299,29 @@ function agnosticRSBP() {
 var rsbp = new agnosticRSBP();
 
 function agObject(/*optional*/ id) {
-	this.finalize(id);
+	this.register(id);
 }
 agObject.byId = new Object();
-agobject.classes = new Array();
+agObject.classes = new Array();
 agObject.nextId = 1;
 agObject.prototype = {
-    finalize: function(id) {
+    register: function(id) {
     	this.id = id || this.generateId();
     	agObject.byId[this.id] = this;
-    	if (!id) {
-    		this.createSerialize();
-    	}
     },
     createSerialize: function() {
-    	Game.client.outgoing(this.id + '.create', this.createSerialization())
+    	this.serialize('create', 
+    			this.class.name + ' ' + this.createSerialization());
     },
     createSerialization: function() {
-    	return this.class.name + ''; //should probably be overridden by subclasses.
+    	return ''; //should probably be overridden by subclasses.
     },
     createDeserialize: function(data) {
     	var class = data.split(" ", 1)[0];
-    	agObject[class].specialize(this, data.split(" ", 2)[1]);
+    	agObject.byId[this.id] = agObject[class].specialize(this, data.split(" ", 2)[1]);
     },
-    serialize: function() {
+    serialize: function(subid, data) {
+    	Game.client.outgoing(this.id + '.' + subid, data);
     },
     deserialize: function(subid, data) {
     	if (this[subid + 'Deserialize']) {
@@ -336,20 +334,20 @@ agObject.prototype = {
     	return rsbp.id + '.' + agObject.nextId++;
     }
 }
-agObject.registerClass(class, name) {
+agObject.registerClass = function(class, name) {
     class.prototype.class = name;
     agObject.classes[name] = class;
 }
-agObject.get(id) {
+agObject.get = function(id) {
 	return agObject.byId[id];
 }
-agObject.getOrCreate(id) {
+agObject.getOrCreate = function(id) {
 	if (!agObject.byId[id]) {
 		agObject.byId[id] = new agObject(id);
 	}
 	return agObject.byId[id];
 }
-agObject.deserialize(id, data) {
+agObject.deserialize = function(id, data) {
 	var idParts = id.split('.'); 
 	var property = idParts.pop(); //only one level of properties.
 	var realId = idParts.join('.');
@@ -357,23 +355,19 @@ agObject.deserialize(id, data) {
 	obj.deserialize(property, data);
 }
 
-function agImage(eltype) {
+var agImage = extend(agObject,
+function(id, eltype) {//constructor
+	agObject.apply(this, [id]);
     this.e = document.createElement(eltype || "img");
     this.e.style.position = "absolute";
     this.e.style.zIndex = 1;
+    agImage.byOrder.push(this);
     this.baseZ = 0;
-}
-agImage.byName = new Object();
-agImage.byOrder = new Array();
-agImage.prototype = {
-    finalize: function(id, desc) {
-        agImage.registerObject(this, id);
-        this.display();
-        if (!id) {
-            Game.client.outgoing("c" + this.class + "." + this.id, desc);
-            this.serialize();
-        }
-    },
+},
+{//prototype
+	createSerialization: function() {
+		return this.e.src; //should probably be overridden by subclasses.
+	},
     getLeft: function() {
         return parseInt(this.e.style.left);
     },
@@ -399,16 +393,27 @@ agImage.prototype = {
         this.e.style.left = Math.round(center.e(1) - this.e.width / 2);
         this.e.style.top = Math.round(center.e(2) - this.e.height / 2); 
     },
-    serialize:function() {
+    moveSerialize: function() {
         var center = this.getCenter();
-        Game.client.outgoing(this.id,
+        this.serialize('move',
                             "" + Math.round(center.e(1)) + " " + Math.round(center.e(2)) + " " 
                             + Math.round(this.currentRotation || 0) + " "
                             + (this.image_index || 0));
     },
+    moveDeserialize: function(data) {
+        this.moveToFront();
+        var nums = data.split(" ", 4);
+        var center = Vector.create([parseFloat(nums[0]), parseFloat(nums[1])]);
+        var degrees = parseFloat(nums[2]);
+        this.image_index = parseInt(nums[3] || 0) % this.images.length;
+        this.e.src = this.images[this.image_index];
+        this.recenter(center);
+        this.setRotation(0, degrees);
+    },
     throwRandomly: function() {
         this.recenter(randomLocation());
         this.setRotation(0, Math.random() * 360);
+        this.moveSerialize();
     },
     setRotation: function(radians, degrees) {
         this.currentRotation = cleanupDegrees((degrees || 0) 
@@ -431,16 +436,6 @@ agImage.prototype = {
         if (moveToEnd(agImage.byOrder, this)) {
             fixZOrder(agImage.byOrder);
         } 
-    },
-    incoming: function(data) {
-        this.moveToFront();
-        var nums = data.split(" ", 4);
-        var center = Vector.create([parseFloat(nums[0]), parseFloat(nums[1])]);
-        var degrees = parseFloat(nums[2]);
-        this.image_index = parseInt(nums[3] || 0) % this.images.length;
-        this.e.src = this.images[this.image_index];
-        this.recenter(center);
-        this.setRotation(0, degrees);
     },
     flip: function(/*optional*/ amount) {
         this.image_index = (this.image_index || 0) + ((amount == undefined) ? 1 : amount);
@@ -469,88 +464,37 @@ agImage.prototype = {
     display: function() {
         document.body.appendChild(this.e);
     },
-    generateId: function() {
-	return "i" + agImage._next_id++;
-    }
-}
-agImage._next_id = 1;
-agImage.registerObject = function(obj, id) {
-    obj.id = id || obj.generateId();
-    if (obj.e) {
-    	agImage.byOrder.push(obj);
-    }
-    agImage.byName[obj.id] = obj;
-}
-var classRegistry = new Object();
-function registerClass(class, name) {
-    class.prototype.class = name;
-    classRegistry[name] = class;
-}
-function handleIncoming(name, data) {
-    if (name[0] == "i" || name[0] == "u") {
-        if (agImage.byName[name]) {
-            agImage.byName[name].incoming(data);
-        } else {
-            alert(name + " not found!");
-        }
-    } else if (name[0] == "c") {
-        var items = name.slice(1).split(".");
-        var class = items[0]
-        var id = items[1];
-        if (classRegistry[class]) {
-            classRegistry[class].recreate(id, data);
-        } else {
-            alert("Can't create: " + name + ", " + data);
-        }
-    }
-    else {
-        alert("Unhandled object: " + name + ", " + data);
-    }
-}
-
+}); //end of extend
+agImage.byOrder = new Array();
+agObject.registerClass(agImage, 'agImage');
 
 var User = extend
-(agImage, 
+(agObject, 
  function(name, /*optional*/id) {
-    agImage.apply(this);
+    agObject.apply(this, [id]);
     this.name = name;
-    delete this.e;
     this.isPlayer = !id; //is current player if no ID was predefined.
     this.options = new Object();
-    this.finalize(id, name);
-    this.active = true;
+    this.isActive = true;
 },
  {
-    display: function() {},
-    serialize: function() {
-	this.active = this.isPlayer; safeAlert("Set " + this.name + " " + this.active + this.isPlayer);
-	Game.client.outgoing(this.id, this.isPlayer ? this.name : '');
-    },
-    incoming: function(data) {
-	if (this.isPlayer && data == '') {
-	    safeAlert(this.name + " still alive");
-	    this.serialize(); //yes, I'm still alive.
-	} else if (this.isPlayer && data != this.name) {
-	    alert("Someone stole your position!"); //shouldn't happen... right?
-	} else if (data != '') {
-	    //safeAlert(data);
-	    this.active = true;
+	isActiveSerialize: function() {
+		this.isActive = this.isPlayer;
+		serialize('active', this.isActive ? '1' : '0');
+	},
+	isActiveDeserialize: function(data) {
+		this.isActive = (data == '1');
+		if (this.isPlayer && !this.isActive) {
+			this.isActiveSerialize();
+		}
 	}
-    },
-    generateId: function() {
-        return User.generateId(this.name);
-    },
-    setOption: function(opt, value) {
-	if (!this.options[opt] || this.options[opt] != value) {
-	    this.options[opt] = value;
-	    Game.client.outgoing("cUser." + this.id + "." + opt, value);
-	} 
-    }
  }
  );
-User.generateId = function(name) {
-    return "u" + encodeURIComponent(name);
+agObject.registerClass(User, 'User');
+User.specialize = function(obj, name) {
+	return new User(name, obj.id);
 }
+/*TODO: reimplement this stuff
 User.recreate = function(id, data) {
     if (!id) {//Request to everyone to create user objects.
 	if (!Game.client.player || Game.client.player.creator != data) {
@@ -586,7 +530,7 @@ User.isNameInUse = function(name) {//should have called checkNames sometime prev
     var id = User.generateId(name);
     return agImage.byName[id] && agImage.byName[id].active;
 }
-registerClass(User, "User");
+*/
 
 
 //////////// MOUSE
@@ -658,6 +602,9 @@ function fixZOrder(array) {
     }
 }
 
+Vector.prototype.theta = function() {
+	return Math.atan2(this.e(2), this.e(1));
+}
 function getRotation(vector) {//in radians
         return Math.atan2(vector.e(2), vector.e(1));
 }
@@ -784,8 +731,8 @@ function satisfyPlayer(form, data) {
 	errors.push('(Somebody is already using the name "' + name + '".)');
     }
     for (var c in data) {
-    	if (classRegistry[data[c]].verifyPlayerForm) {
-    	    var error = classRegistry[data[c]].verifyPlayerForm(form);
+    	if (agObject.classes[data[c]].verifyPlayerForm) {
+    	    var error = agObject.classes[data[c]].verifyPlayerForm(form);
 	    if (error != "") {
 		errors.push(error);
 	    }
@@ -814,8 +761,8 @@ onSubmit="return satisfyPlayer(this, \'' + data.join(" ") + '\')">';
 <label for="wantUsername">What would you like to be called?&nbsp;&nbsp;</label>\
 <input type="text" id="wantUsername" name="username" />';
     for (var c in data) {
-    	if (classRegistry[data[c]].playerForm) {
-    	    wants += '<br />' + classRegistry[data[c]].playerForm() + '<br />';
+    	if (agObject.classes[data[c]].playerForm) {
+    	    wants += '<br />' + agObject.classes[data[c]].playerForm() + '<br />';
     	}
     }
     wants += '<br /><input type="submit" value="Done." /></form>\
@@ -828,10 +775,10 @@ function startNewGame(isServer) {
     var wants = '\
 Add some game elements to begin.\
 <form id="questions" action="" method="GET" \
-onSubmit="return createNewGame(this, ' + isServer + ')">';
-    for (var c in classRegistry) {
-    	if (classRegistry[c].createForm) {
-    		wants += '<br />' + classRegistry[c].createForm() + '<br />';
+onSubmit="createNewGame(this, ' + isServer + '); return false;">';
+    for (var c in agObject.classes) {
+    	if (agObject.classes[c].createForm) {
+    		wants += '<br />' + agObject.classes[c].createForm() + '<br />';
     	}
     }
     wants += '<br /><input type="submit" value="Done." /></form>';
@@ -848,18 +795,19 @@ function createNewGame(form, isServer) {
     demand("creating", 7, "Please wait, building game...");
     undemand("create");
     for (var i in form.item) {
+    	debug(i + ", " + form.item[i]);
         if (form.item[i].checked) {
             eval(form.item[i].value); //yikes!
         }
     }
-    User.startUp();
+    //User.startUp();
     undemand("creating");
     return false;
 }
 
 function joinGameInProgress() {
     Game.server.join();
-    User.checkNames();
+    //User.checkNames();
     undemand("connection"); //drop out of connection screen.
 }
 
