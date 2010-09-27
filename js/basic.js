@@ -1,3 +1,22 @@
+/* 
+# Copyright (C) 2010 by Kevin Saff
+
+# This file is part of Agnostic.
+
+# Agnostic is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# Agnostic is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 //Stolen from:
 //http://www.lshift.net/blog/2006/08/03/subclassing-in-javascript-part-2
 function extend(superclass, constructor, prototype) {
@@ -8,4 +27,22 @@ function extend(superclass, constructor, prototype) {
         constructor.prototype[k] = prototype[k];
     }
     return constructor;
+}
+
+
+var safeAlertCount = 5;
+function safeAlert(text, /*optional*/ignored) {
+    if (text != ignored && safeAlertCount-- > 0) {
+        alert(text);
+    }
+}
+
+function debug(text, refresh) {
+    if (document.getElementById("debug")) {
+        if (refresh != undefined && refresh) {
+            document.getElementById("debug").innerHTML = text;
+        } else {
+            document.getElementById("debug").innerHTML += '<br />' + text;
+        }
+    }
 }
