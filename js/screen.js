@@ -23,9 +23,11 @@ function Screen() {
 	this.dialogs = clone(Screen.dialogs);
 	this.dialogs.start.active = true;
 	this.currentDialog = null;
+	this.joined = false;
 	this.createDialog();
 	this.display();
-	Events.attach('ping', Delegate(this, this.ping));
+	Events.attach('ping', Delegate(this, Screen.events.ping));
+	Events.attach('form', Delegate(this, Screen.events.form));
 }
 Screen.prototype = {
 	createDialog: function() {
@@ -73,10 +75,6 @@ Screen.prototype = {
 			setTimeout(Delegate(this, this.fadeDialog), 40);
 		}
 	},
-	ping: function() {
-		this.lastConnected = timestamp();
-		this.display();
-	},
 	isConnected: function() {
 		return this.hasConnected() && this.getDisconnectionTime() < 5;
 	},
@@ -89,8 +87,9 @@ Screen.prototype = {
 	getActiveDialog: function() {
 		var d = null;
 		for (var i in this.dialogs) {
-			if (!d || (this.dialogs[i].active 
-					&& this.dialogs[i].priority > d.priority)) {
+			if (this.dialogs[i].active && (!d
+					|| (this.dialogs[i].priority > d.priority)) ) {
+				debug(i + this.dialogs[i].active);
 				d = this.dialogs[i];
 			}
 		}
@@ -102,6 +101,7 @@ Screen.prototype = {
 			this.applyMessages();
 			return;
 		}
+		this.currentDialog = activeDialog;
 		if (activeDialog == null) {
 			this.fadeDialog(); return;
 		}
@@ -116,6 +116,23 @@ Screen.prototype = {
 			el.innerHTML = Screen.messages[m].apply(this);
 		}
 	},
+	createButton: function(name) {
+		var button = Screen.buttons[name];
+		var result = new Array();
+		result.push('<form>')
+		if (button.label) {
+			result.push('<label for="' + name + '">');
+			result.push(button.label.replace(' ', '&nbsp;'));
+			result.push('</label>')
+		}
+		result.push('<input type="button" value="');
+		result.push(button.value);
+		result.push('" id="' + name + '" onClick="Events.form(this, \'');
+		result.push(name)
+		result.push('\')" />')
+		result.push('</form>')
+		return result.join("");
+	}
 }
 Screen.dialogs = {
 	'start': {priority: 10, html:
@@ -135,6 +152,34 @@ Screen.messages = {
 		}
 	},
 	gameStatus: function() {
-		return "";
+		return this.createButton('startNewGame');
+	},
+}
+Screen.events = {
+	ping: function() {
+		var wasConnected = this.isConnected();
+		this.lastConnected = timestamp();
+		if (!wasConnected) {
+			this.display();
+		}
+	},
+	form: function(event) {
+		var key = event.args[1];
+		debug('form' + key);
+		if (Screen.buttons[key]) {
+			Screen.buttons[key].action.apply(this, arguments);
+		}
+	},
+}
+Screen.buttons = {
+	startNewGame: {
+		label: "No game in progress:  ",
+		value: "Start new game",
+		action: function(form) {
+			debug('startNewGame');
+			this.dialogs.start.active = false;
+			//debug(str(this.dialogs.start));
+			this.display();
+		}	
 	},
 }

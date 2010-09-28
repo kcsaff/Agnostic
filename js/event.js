@@ -40,10 +40,16 @@ Events.handle = function(count) {
 	if (count == null) {count = 100;}
 	while (count-- > 0 && Events.queue.length > 0) {
 		var event = Events.get();
+		if (!Events.handlers[event['type']]) {continue;}
 		for (var i=0; i < Events.handlers[event['type']].length; ++i) {
 			Events.handlers[event['type']][i](event);
 		}
 	}
+}
+Events.form = function(form) {
+	Events.put({'type': 'form',
+				'form': form,
+				'args': arguments});
 }
 
 Delegate = function(self, fun) {
