@@ -19,8 +19,8 @@
 
 function Main() {
 	this.rsbp = new RSBP();
-	this.screen = new Screen();
-	this.game = new Game(this.rsbp.record, this.screen);
+	this.game = new Game(this.rsbp.record);
+	this.screen = new Screen(this.rsbp, this.game);
 	setInterval(Delegate(this, this.run), 1000);
 	this.rsbp.start();
 	this.run();

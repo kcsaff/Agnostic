@@ -50,6 +50,7 @@ Events.form = function(form) {
 	Events.put({'type': 'form',
 				'form': form,
 				'args': arguments});
+	return false;
 }
 
 Delegate = function(self, fun) {

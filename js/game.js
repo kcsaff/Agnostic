@@ -17,13 +17,12 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-function Game(/*optional*/ record, screen) {
+function Game(/*optional*/ record) {
     if (!record) {record = new RSBP.Record();} 
-    if (!screen) {screen = null;}
-    this.screen = screen;
     this.objects = new Object();
     this.record = record;
     this.record.attachCallback(this);
+    this.nextId = 1;
 }
 Game.prototype = {
     remove: function(key) {
@@ -38,32 +37,45 @@ Game.prototype = {
 		} else if (data === null) {
 		    this.remove(key);
 		} else if (key.slice(-7) == '.create') {
-			this.screen & this.screen.gameObjectReceived();
-		    this.create(key.slice(0, -7), data);
+		    this.create(data, key.slice(0, -7));
 		} else {
 		    var dpos = key.lastIndexOf('.');
 		    var obj = this.objects[key.slice(0, dpos)];
 		    obj.remote[key.slice(dpos + 1)].apply(obj, data.split(" "));
 		}
     },
+    outgoing: function(key, data) {
+    	this.record.outgoing(key, data);
+    },
     clear: function() {
 		var backup = this.record.generate(true);
 		for (var key in this.objects) {
 		    this.remove(key);
 		}
-		this.screen && this.screen.gameEnded(backup);
     },
-    create: function(key, data) {
-		var sPos = data.indexOf(" ");
-		var className = data.slice(0, sPos);
-		var params = data.slice(sPos + 1).split(" ");
-		params.unshift(key);
-		params.unshift(this);
-		params.unshift(this.screen);
+    create: function(data, id) {
 		var result = new Object();
-		Game.Class[className].apply(result, params);
-		this.objects[key] = result;
+		if (!id)
+		{
+			id = this.getNextId();
+			this.record.outgoing(id, data);
+		}
+		result.id = id;
+		result.game = this;
+		this.objects[id] = result;
+    	var data = data.split(" ");
+		result.__proto__ = Game.Class[data[0]].prototype;
+		Game.Class[data[0]].apply(result, data.slice(1));
 		return result;
+    },
+    construct: function(data) {
+    	var data = data.split(" ");
+    	var key = data[0];
+    	data.splice(0, 1, this);
+    	return Game.Constructor[key].apply(null, data);
+    },
+    getNextId: function() {
+    	return this.record.id + '.' + this.nextId++;
     },
     remote: {
 		game: function(name) {
@@ -76,32 +88,30 @@ Game.prototype = {
 		}
     },
 }
-Game.Class = function(name, constructor, prototype) {
-    Game.Class[name] = function() {
-		var args = arguments;
-		this.screen = args.shift();
-		this.game = args.shift();
-		this.id = args.shift();
-		this.__class__ = constructor;
-		this.__init__ = constructor;
-		constructor.apply(this, arguments);
-    };
-    Game.Class[name].prototype = prototype;
-    return Game.Class[name];
+Game.Class = function(item) {
+    Game.Class[item.name] = function(/*arguments*/) {
+    	item.__init__.apply(this, arguments);
+    }
+    clone(item, Game.Class[item.name]);
+	debug('classy');
+    if (Game.Class[item.name].subclass) {
+    	debug('set superclass');
+    	var superclass = Game.Class[Game.Class[item.name].subclass];
+    	var wcon = function() {};
+    	wcon.prototype = superclass.prototype;
+    	Game.Class[item.name].prototype = new wcon();
+    	clone(item.prototype, Game.Class[item.name].prototype);
+    	Game.Class[item.name].prototype.superclass = superclass;
+    	debug(Game.Class[item.name].prototype.superclass);
+    }
+    debug(Game.Class[item.name])
+    return Game.Class[item.name];
 }
-Game.Subclass = function(name, superclass, constructor, prototype) {
-    var withoutcon = function () {};
-    withoutcon.prototype = Game.Class[superclass].prototype;
-    constructor.prototype = new withoutcon();
-    clone(prototype, constructor.prototype);
-    constructor.superclass = Game.Class[superclass];
-    return Game.Class(name, constructor, constructor.prototype);
-}
-Game.Constructor = function(name, category, priority, html, func) {
-	Game.Contructor[name] = func;
-	func.name = name;
-	func.category = category;
-	func.priority = priority;
-	func.html = html;
-	return Game.Contructor[name];
+Game.Constructor = function(arg) {
+	Game.Constructor[arg.name] = arg.action;
+	Game.Constructor[arg.name].name = arg.name;
+	Game.Constructor[arg.name].category = arg.category;
+	Game.Constructor[arg.name].priority = arg.priority;
+	Game.Constructor[arg.name].html = arg.html;
+	return Game.Constructor[arg.name];
 }

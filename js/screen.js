@@ -17,7 +17,9 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-function Screen() {
+function Screen(connection, game) {
+	this.connection = connection;
+	this.game = game;
 	debug("Screen");
 	this.lastConnected = null;
 	this.dialogs = clone(Screen.dialogs);
@@ -98,7 +100,9 @@ Screen.prototype = {
 	display: function() {
 		var activeDialog = this.getActiveDialog();
 		if (activeDialog === this.currentDialog) {
-			this.applyMessages();
+			if (activeDialog.refresh) {
+				this.applyMessages();
+			}
 			return;
 		}
 		this.currentDialog = activeDialog;
@@ -132,12 +136,42 @@ Screen.prototype = {
 		result.push('\')" />')
 		result.push('</form>')
 		return result.join("");
-	}
+	},
+	startNewGame: function() {
+		var result = new Array();
+		
+	},
 }
+
+function startNewGame(isServer) {
+    var wants = '\
+Add some game elements to begin.\
+<form id="questions" action="" method="GET" \
+onSubmit="return createNewGame(this, ' + isServer + ')">';
+    for (var c in classRegistry) {
+    	if (classRegistry[c].createForm) {
+    		wants += '<br />' + classRegistry[c].createForm() + '<br />';
+    	}
+    }
+    wants += '<br /><input type="submit" value="Done." /></form>';
+    demand("create", 6, wants);
+    undemand("connection");
+}
+
 Screen.dialogs = {
-	'start': {priority: 10, html:
+	'start': {
+		refresh: true,
+		priority: 10, 
+		html:
 '<div id="connection">Loading...</div>' +
 '<div id="gameStatus"></div>'
+	},
+	'new': {
+		priority: 11,
+		html:
+'Add some game elements to begin.' +
+'<form id="gameElements" action="" method="GET" onSubmit="Events.form(this, \'createGame\'); return false;">' +
+'</form>'
 	},
 }
 Screen.messages = {
@@ -152,7 +186,22 @@ Screen.messages = {
 		}
 	},
 	gameStatus: function() {
-		return this.createButton('startNewGame');
+		return this.createButton('startGame');
+	},
+	gameElements: function() {
+		var result = new Array();
+		for (var c in Game.Constructor) {
+			if (!Game.Constructor[c] || !Game.Constructor[c].html) {continue;}
+			result.push('<br />');
+			result.push('<label for="'+c+'">');
+			result.push(Game.Constructor[c].html);
+			result.push('</label>');
+			result.push('<br />');
+			result.push('<input type="checkbox" name="item" id="'+c+'" value="'+c+'">')
+			result.push('<br />');
+		}
+		result.push('<br /><input type="submit" value="Done." /></form>');
+		return result.join("");
 	},
 }
 Screen.events = {
@@ -172,14 +221,25 @@ Screen.events = {
 	},
 }
 Screen.buttons = {
-	startNewGame: {
+	startGame: {
 		label: "No game in progress:  ",
 		value: "Start new game",
 		action: function(form) {
-			debug('startNewGame');
 			this.dialogs.start.active = false;
-			//debug(str(this.dialogs.start));
+			this.dialogs['new'].active = true;
 			this.display();
 		}	
+	},
+	createGame: {
+		action: function(event) {
+			var form = event.form;
+		    for (var i in form) {
+		        if (form.item[i] && form.item[i].checked) {
+		            this.game.construct(form.item[i].value); 
+		        }
+		    }
+			this.dialogs['new'].active = false;
+			this.display();
+		}
 	},
 }

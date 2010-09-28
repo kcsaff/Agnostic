@@ -160,15 +160,15 @@ RSBP.Record.prototype = {
 		return result;
 	},
     incoming: function(key, data) {
-	if (data === null) {
-	    this.doCallback(key, data);
-	    delete this.objects[key];
-	    for (var skey in this.objects) {
-		if (skey.slice(0, key.length + 1) == key + '.') {
-		    delete this.objects[skey];
-		}
-	    }
-	} else if (!this.pending[key]) {
+		if (data === null) {
+		    this.doCallback(key, data);
+		    delete this.objects[key];
+		    for (var skey in this.objects) {
+				if (skey.slice(0, key.length + 1) == key + '.') {
+				    delete this.objects[skey];
+				}
+		    }
+		} else if (!this.pending[key]) {
             this.objects[key] = [this.transaction++, data];
             this.doCallback(key, data);
         } else if (!maintain_pending && this.objects[key][1] == data) {
@@ -202,7 +202,8 @@ RSBP.Record.prototype = {
 	return result;
     },
     attachCallback: function(callback) {
-        for (var i in this.getTransactions(true)) {
+    	var arr = this.getTransactions(true);
+        for (var i in arr) {
             callback.incoming(arr[i][1], arr[i][0][1]);
         }
     },
@@ -211,7 +212,8 @@ RSBP.Record.prototype = {
         if (all) {
             result.push(RSBP.encode("", null));
         }
-        for (var i in this.getTransactions(all)) {
+        var arr = this.getTransactions(all);
+        for (var i in arr) {
             result.push(RSBP.encode(arr[i][0], arr[i][1]));
         }
         return result.join("");

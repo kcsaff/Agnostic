@@ -44,29 +44,42 @@ function safeAlert(text, /*optional*/ignored) {
     }
 }
 
+function str(obj) {
+	if (typeof(obj) == 'object') {
+		var result = new Array();
+		result.push('{');
+		for (var key in obj) {
+			result.push(key);
+			result.push(': ');
+			result.push(obj[key]);
+			result.push(', ');
+		}
+		result.push('}');
+		return result.join('');
+	} else if (typeof(obj) == 'array') {
+		var result = new Array();
+		result.push('[');
+		for (var key in obj) {
+			result.push(obj[key]);
+			result.push(', ');
+		}
+		result.push(']');
+		return result.join('');
+	} else {
+		return String(obj);
+	}
+}
+
 function debug(text, refresh) {
     if (document.getElementById("debug")) {
         if (refresh != undefined && refresh) {
-            document.getElementById("debug").innerHTML = text;
+            document.getElementById("debug").innerHTML = str(text);
         } else {
-            document.getElementById("debug").innerHTML += '<br />' + text;
+            document.getElementById("debug").innerHTML += '<br />' + str(text);
         }
     }
 }
 
 function timestamp() {
 	return (new Date()).getTime();
-}
-
-function str(obj) {
-	var result = new Array();
-	result.push('{');
-	for (var key in obj) {
-		result.push(key);
-		result.push(': ');
-		result.push(obj[key]);
-		result.push('\n');
-	}
-	result.push('}');
-	return result.join('');
 }

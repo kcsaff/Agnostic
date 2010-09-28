@@ -17,50 +17,56 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-var Card = extend
-(agImage, 
- function(front, back, id) {
-    agImage.apply(this);
-    this.e.src = front;
-    makeDraggable(this);
-    this.images = [front, back];
-    this.throwRandomly();
-    if (Math.random() < 0.33) {
-    	this.flip();
-    }
-    this.finalize(id, front + " " + back);
-},
- {
- }
- );
-Card.recreate = function(id, desc) {
-    var images = desc.split(" ");
-    return new Card(images[0], images[1], id);
-}
-registerClass(Card, "Card");
-
-Card.createDeck = function(jokers) {
-    var suits = "clubs diamonds hearts spades".split(" ");
-    var ranks = "a 2 3 4 5 6 7 8 9 10 j q k".split(" ");
-    for (var suit in suits) {
-	for (var rank in ranks) {
-	    new Card("card/" + suits[suit] + "-" + ranks[rank] + "-75.png",
-		       "card/back-blue-75-1.png");
+var Card = Game.Class({
+	name: 'Card',
+	subclass: 'agImage',
+	__init__: function(front, back) {
+		this.superclass.apply(this);
+	    this.e.src = front;
+	    makeDraggable(this);
+	    this.images = [front, back];
+	    this.throwRandomly();
+	    if (Math.random() < 0.33) {
+	    	this.flip();
+	    }
+	    this.display();
 	}
-    }
-    if (jokers && jokers >= 1) {
-	new Card("card/joker-r-75.png", "card/back-blue-75-1.png");
-    }
-    if (jokers && jokers >= 2) {
-	new Card("card/joker-b-75.png", "card/back-blue-75-1.png");
-    }
-}
-Card.createForm = function() {
-    return '<label for="wantStandardDeck"><img src="card/spades-a-75.png" /></label><br />\
-<input type="checkbox" name="item" id="wantStandardDeck" value="Card.createDeck(2)">\
-Add a deck of standard playing cards.</input>';
-}
+});
 
+Card.createDeck = Game.Constructor({
+	name: "standardDeck",
+	category: "cards",
+	priority: 1,
+	html: '<img src="card/spades-a-75.png" />',
+	action: function(game, jokers) {
+		debug(str(arguments));
+		var jokers = parseInt(jokers);
+	    var suits = "clubs diamonds hearts spades".split(" ");
+	    var ranks = "a 2 3 4 5 6 7 8 9 10 j q k".split(" ");
+	    for (var suit in suits) {
+			for (var rank in ranks) {
+			    game.create("Card card/"+suits[suit]+"-"+ranks[rank]+"-75.png" +
+				       " card/back-blue-75-1.png");
+			}
+	    }
+	    if (jokers && jokers >= 1) {
+	    	game.create("Card card/joker-r-75.png card/back-blue-75-1.png");
+	    }
+	    if (jokers && jokers >= 2) {
+	    	game.create("Card card/joker-b-75.png card/back-blue-75-1.png");
+	    }
+	}
+});
+
+Game.Constructor({
+	name: "null",
+	category: "null",
+	priority: 1,
+	html: 'Hello',
+	action: function() {
+		Card.createDeck();
+	}
+});
 
 function dragArbitraryRotate(object, event) {
     result = {};
