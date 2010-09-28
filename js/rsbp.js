@@ -91,6 +91,7 @@ RSBP.prototype = {
         http.onreadystatechange = function() {
             if (http.readyState == 4) {
                 if (http.status == 200) {
+                	Events.put({type: 'ping'});
                     rsbp.unsent_data = null;
                     rsbp.timeout = null;
                     rsbp.last_connection = (new Date()).getTime();
@@ -99,7 +100,7 @@ RSBP.prototype = {
                     }
                     rsbp.apply(http.responseText);
                     if (rsbp.isRunning) {
-                        rsbp.poll_forever();
+                        rsbp.start();
                     }
                 } else {
                     var self = rsbp;
@@ -151,6 +152,13 @@ RSBP.Record = function() {
     this.transaction = 0;
 }
 RSBP.Record.prototype = {
+	clone: function() {
+		result = new RSBP.Record();
+		result.objects = clone(this.objects);
+		result.pending = clone(this.pending);
+		result.transaction = this.transaction;
+		return result;
+	},
     incoming: function(key, data) {
 	if (data === null) {
 	    this.doCallback(key, data);
@@ -168,10 +176,10 @@ RSBP.Record.prototype = {
         }
     },
     doCallback: function(key, data) {
-	for (var i in this.callbacks) {
-	    this.callbacks[i].incoming(key, data);
-	}
-    }
+		for (var i in this.callbacks) {
+		    this.callbacks[i].incoming(key, data);
+		}
+    },
     outgoing: function(key, data) {
         this.objects[key] = [this.transaction++, data];
         this.pending[key] = true;

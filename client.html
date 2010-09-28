@@ -25,35 +25,30 @@
 
 <script src="js/sylvester.js" type="text/javascript"></script>
 <script src="js/basic.js" type="text/javascript"></script>
+<script src="js/event.js" type="text/javascript"></script>
 <script src="js/rsbp.js" type="text/javascript"></script>
-<script src="js/agnostic.js" type="text/javascript"></script>
-<script src="js/card.js" type="text/javascript"></script>
-<script src="js/tarot.js" type="text/javascript"></script>
-<script src="js/pyramid.js" type="text/javascript"></script>
-<script src="js/userarea.js" type="text/javascript"></script>
+<script src="js/game.js" type="text/javascript"></script>
+<script src="js/screen.js" type="text/javascript"></script>
+<script src="js/main.js" type="text/javascript"></script>
 
 </head>
 
 <body>
 
-<div id="cards">
 Drag left mouse button in center of card to move.<br />
 Drag around edge of card to move and rotate.<br />
-<a href="javascript:Game.server.reset()">Reset server.</a><br />
-<a href="javascript:Game.client.reset()">Reset client.</a>
-</div>
+
 <div id="debug"> </div>
 
 
 <script type="text/javascript">
 <!-- 
  
-rsbp.poll_forever();
-
-demandConnectionScreen();
+var main = new Main();
+main.run();
 
  //-->
- </script>
+</script>
 
 </body>
 

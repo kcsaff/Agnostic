@@ -19,13 +19,20 @@
 
 //Stolen from:
 //http://www.lshift.net/blog/2006/08/03/subclassing-in-javascript-part-2
+
+function clone(from, /*optional*/ to) {
+	if (!to) {to = new Object;}
+	for (var k in from) {
+		to[k] = from[k];
+	}
+	return to;
+}
+
 function extend(superclass, constructor, prototype) {
     var withoutcon = function () {};
     withoutcon.prototype = superclass.prototype;
     constructor.prototype = new withoutcon();
-    for (var k in prototype) {
-        constructor.prototype[k] = prototype[k];
-    }
+    clone(prototype, constructor.prototype);
     return constructor;
 }
 
@@ -45,4 +52,21 @@ function debug(text, refresh) {
             document.getElementById("debug").innerHTML += '<br />' + text;
         }
     }
+}
+
+function timestamp() {
+	return (new Date()).getTime();
+}
+
+function str(obj) {
+	var result = new Array();
+	result.push('{');
+	for (var key in obj) {
+		result.push(key);
+		result.push(': ');
+		result.push(obj[key]);
+		result.push('\n');
+	}
+	result.push('}');
+	return result.join('');
 }
