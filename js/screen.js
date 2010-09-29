@@ -26,6 +26,7 @@ function Screen(connection, game) {
 	this.currentDialog = null;
 	this.joined = false;
 	this.inProgress = false;
+	this.playerReq = new Array();
 	this.createDialog();
 	this.display();
 	Events.attach('ping', Delegate(this, Screen.events.ping));
@@ -120,132 +121,9 @@ Screen.prototype = {
 			el.innerHTML = Screen.messages[m].apply(this);
 		}
 	},
-	createButton: function(name) {
-		var button = Screen.buttons[name];
-		var result = new Array();
-		result.push('<form>')
-		if (button.label) {
-			result.push('<label for="' + name + '">');
-			result.push(button.label.replace(' ', '&nbsp;'));
-			result.push('</label>')
-		}
-		result.push('<input type="button" value="');
-		result.push(button.value);
-		result.push('" id="' + name + '" onClick="Events.form(this, \'');
-		result.push(name)
-		result.push('\')" />')
-		result.push('</form>')
-		return result.join("");
-	},
+
 }
 
-Screen.dialogs = {
-	'start': {
-		refresh: true,
-		priority: 10, 
-		html:
-'<div id="connection">Loading...</div>' +
-'<div id="gameStatus"></div>'
-	},
-	'new': {
-		priority: 11,
-		html:
-'Add some game elements to begin.' +
-'<form id="gameElements" action="" method="GET" onSubmit="Events.form(this, \'createGame\'); return false;">' +
-'</form>'
-	},
-	'wait': {
-	    priority: 100,
-	    html: '<div>Please wait...</div><div>(Math is hard!)</div>'
-	}
-}
-Screen.messages = {
-	connection: function() {
-		if (this.isConnected()) {
-			return "Connected to default server.";
-		} else if (this.hasConnected()) {
-			return "Disconnected from default server"
-            + " for " + this.getDisconnectionTime() + " seconds."
-		} else {
-			return "Connecting to default server...";
-		}
-	},
-	gameStatus: function() {
-		this.inProgress = this.game.isInProgress();
-		if (this.inProgress) {
-		    return this.createButton('joinGame');
-		} else {
-			return this.createButton('startGame');
-		}
-	},
-	gameElements: function() {
-	var rows = Game.getConstructorsByCategory('html');
-	var result = new Array();
-	for (var cat in rows) {
-	    result.push('<table><tr align="center">');
-	    for (var i in rows[cat]) {
-			result.push('<td>');
-			result.push('<label for="'+rows[cat][i].id+'">');
-			result.push(rows[cat][i].html);
-			result.push('</label>');		
-			result.push('</td>');
-	    }
-	    result.push('</tr><tr align="center">');
-	    for (var i in rows[cat]) {
-			result.push('<td>');
-			var name = rows[cat][i].id;
-			result.push('<input type="checkbox" name="item" id="'+name+'" value="'+name+'">');
-			result.push('</td>');
-	    }
-	    result.push('</tr></table>');
-	}
-		result.push('<br /><input type="submit" value="Done." />');
-		return result.join("");
-	},
-}
-Screen.events = {
-	ping: function() {
-		var wasConnected = this.isConnected();
-		this.lastConnected = timestamp();
-		if (!wasConnected || this.inProgress != this.game.isInProgress()) {
-			this.display();
-		}
-	},
-	form: function(event) {
-		var key = event.args[1];
-		if (Screen.buttons[key]) {
-			Screen.buttons[key].action.apply(this, arguments);
-		}
-	},
-	peruser: function(event) {
-		
-	},
-}
-Screen.userdata = {
-	username: {
-		order: -1, 
-		html: '<label for="wantUsername">What would you like to be called?&nbsp;&nbsp;</label>' +
-			'<input type="text" id="wantUsername" name="username" />',
-		validate: function(username) {
-			if (!username) {
-				return "Please enter a user name.";
-			} else if (this.game.users[username] && this.game.users[username].isSeated()) {
-				return "That name is already in use.";
-			} else {
-				return ""; //ok
-			}
-		},
-		action: function(username) {
-			var player = null;
-			if (this.game.users[username]) {
-				player = this.game.users[username];
-			} else {
-				player = this.game.create("User " + Game.User.encode(username));
-			}
-			player.takeSeat();
-		},
-	}
-}
 Screen.buttons = {
 	startGame: {
 		label: "No game in progress:  ",
@@ -257,6 +135,12 @@ Screen.buttons = {
 			this.dialogs['new'].active = true;
 			this.dialogs.wait.active = false;	              
 			this.display();
+		}	
+	},
+	randomName: {
+		value: "New random name",
+		action: function(form) {
+	    	document.getElementById('username').value = Screen.randomUsername();
 		}	
 	},
 	joinGame: {
@@ -283,4 +167,182 @@ Screen.buttons = {
 			this.display();
 		}
 	},
+	playerReq: {
+		action: function(event) {
+			var errors = new Array();
+			for (var i in this.playerReq) {
+				var key = this.playerReq[i];
+				var value = document.getElementById(key).value;
+				var invalid = Screen.userdata[key].validate.apply(this, [value]);
+				if (invalid) {
+					errors.push(invalid);
+				}
+			}
+			if (errors.length) {
+				document.getElementById('inputerrors').innerHTML = errors.join('<br />');
+			} else {
+				this.dialogs.playerReq.active = false;
+				this.display();
+			}
+	}
+	},
+}
+Screen.createButton = function(name) {
+	var button = Screen.buttons[name];
+	var result = new Array();
+	result.push('<form>')
+	if (button.label) {
+		result.push('<label for="' + name + '">');
+		result.push(button.label.replace(' ', '&nbsp;'));
+		result.push('</label>')
+	}
+	result.push('<input type="button" value="');
+	result.push(button.value);
+	result.push('" id="' + name + '" onClick="Events.form(this, \'');
+	result.push(name)
+	result.push('\')" />')
+	result.push('</form>')
+	return result.join("");
+}
+
+Screen.dialogs = {
+	'start': {
+		refresh: true,
+		priority: 10, 
+		html:
+'<div id="connection">Loading...</div>' +
+'<div id="gameStatus"></div>'
+	},
+	'new': {
+		priority: 11,
+		html:
+'Add some game elements to begin.' +
+'<form id="gameElements" action="" method="GET" onSubmit="Events.form(this, \'createGame\'); return false;">' +
+'</form>'
+	},
+	'wait': {
+	    priority: 100,
+	    html: '<div>Please wait...</div><div>(Math is hard!)</div>'
+	},
+	'playerReq': {
+		priority: 9,
+		html:
+			'Please answer a question or two before entering the game.' +
+			'<form id="playerReq" action="" method="GET" onSubmit="Events.form(this, \'playerReq\'); return false;">' +
+			'</form><div id="inputerrors" />'
+	}
+}
+Screen.messages = {
+	connection: function() {
+		if (this.isConnected()) {
+			return "Connected to default server.";
+		} else if (this.hasConnected()) {
+			return "Disconnected from default server"
+            + " for " + this.getDisconnectionTime() + " seconds."
+		} else {
+			return "Connecting to default server...";
+		}
+	},
+	gameStatus: function() {
+		this.inProgress = this.game.isInProgress();
+		if (this.inProgress) {
+		    return Screen.createButton('joinGame');
+		} else {
+			return Screen.createButton('startGame');
+		}
+	},
+	gameElements: function() {
+	var rows = Game.getConstructorsByCategory('html');
+	var result = new Array();
+	for (var cat in rows) {
+	    result.push('<table><tr align="center">');
+	    for (var i in rows[cat]) {
+			result.push('<td>');
+			result.push('<label for="'+rows[cat][i].id+'">');
+			result.push(rows[cat][i].html);
+			result.push('</label>');		
+			result.push('</td>');
+	    }
+	    result.push('</tr><tr align="center">');
+	    for (var i in rows[cat]) {
+			result.push('<td>');
+			var name = rows[cat][i].id;
+			result.push('<input type="checkbox" name="item" id="'+name+'" value="'+name+'">');
+			result.push('</td>');
+	    }
+	    result.push('</tr></table>');
+	}
+		result.push('<br /><input type="submit" value="Done." />');
+		return result.join("");
+	},
+	playerReq: function() {
+		var result = new Array();
+		for (var i in this.playerReq) {
+			result.push(Screen.userdata[this.playerReq[i]].html);
+		}
+		result.push('<br /><input type="submit" value="Done." />');
+		return result.join('');
+	}
+}
+Screen.events = {
+	ping: function() {
+		var wasConnected = this.isConnected();
+		this.lastConnected = timestamp();
+		if (!wasConnected || this.inProgress != this.game.isInProgress()) {
+			this.display();
+		}
+	},
+	form: function(event) {
+		var key = event.args[1];
+		if (Screen.buttons[key]) {
+			Screen.buttons[key].action.apply(this, arguments);
+		}
+	},
+	peruser: function(event) {
+		var toCollect = new Array();
+		for (var cls in this.game.peruser) {
+			for (var i in this.game.peruser[cls]) {
+				var req = this.game.peruser[cls][i];
+				if (!this.game.player || !this.game.player[req]) {
+					if (indexOf(toCollect, req) == null) {
+						toCollect.push(req);
+					}
+				}
+			}
+		}
+		this.playerReq = toCollect;
+		debug(this.playerReq.join('5'));
+		if (this.playerReq.length) {
+			this.dialogs.playerReq.active = true;
+			this.display();
+		};
+	},
+}
+
+Screen.userdata = {
+	username: {
+		order: -1, 
+		html: '<label for="username">What would you like to be called?&nbsp;&nbsp;</label>' +
+			'<input type="text" id="username" value="'+randomUsername()+'"/>'  
+			//+ Screen.createButton('randomName')
+			,
+		validate: function(username) {
+			if (!username) {
+				return "Please enter a user name.";
+			} else if (this.game.users[username] && this.game.users[username].isSeated()) {
+				return "That name is already in use.";
+			} else {
+				return ""; //ok
+			}
+		},
+		action: function(username) {
+			var player = null;
+			if (this.game.users[username]) {
+				player = this.game.users[username];
+			} else {
+				player = this.game.create("User " + Game.User.encode(username));
+			}
+			player.takeSeat();
+		},
+	}
 }

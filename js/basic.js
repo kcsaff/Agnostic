@@ -86,6 +86,67 @@ function isEmpty(obj) {
 	return true;
 }
 
+function indexOf(obj, item) {
+	for (var i in obj) {
+		if (obj[i] == item) {
+			return i;
+		}
+	}
+	return null;
+}
+
+function l33t(s) {
+	var r = s;
+	r = r.replace('i', '!');
+	r = r.replace('l', '1');
+	r = r.replace('e', '3');
+	r = r.replace('a', '4');
+	r = r.replace('w', 'vv');
+	r = r.replace('m', '|v|');
+	r = r.replace('t', '7');
+	return r;
+}
+
+function capitalizeEveryOther(s) {
+	var r = s;
+	for (var i = 1; i < r.length; i += 2) {
+		r = r.slice(0, i) + r[i].toUpperCase() + r.slice(i + 1);
+	}
+	return r;
+}
+
+randomUsername = function() {
+	var qualities = 'ice fire rain dark night lucky lefty shiny moon dire were jelly'.split(' ');
+	var animals = 'fox squirrel lizard bird wolf monkey quail fish cat cow'.split(' ');
+	var quality = qualities[Math.floor(Math.random() * qualities.length)];
+	var animal = animals[Math.floor(Math.random() * animals.length)];
+	if (Math.random() < 0.1) {
+		quality = l33t(quality);
+	}
+	if (Math.random() < 0.1) {
+		animal = l33t(animal);
+	}
+	if (Math.random() < 0.2) {
+		return quality + animal;
+	} else if (Math.random() < 0.3) {
+		return capitalizeEveryOther(quality + animal);
+	} else if (Math.random() < 0.4) {
+		return quality + animal.toUpperCase();
+	} else if (Math.random() < 0.5) {
+		return 'xx.' + quality + '.' + animal + '.xx';
+	} else if (Math.random() < 0.6) {
+		return '_-=' + quality+animal + '=-_';
+	} else if (Math.random() < 0.7) {
+		return '.oOo.' + (quality+animal).toUpperCase() + '.oOo.';
+	} else if (Math.random() < 0.8) {
+		return animal + ' of ' + quality;
+	} else if (Math.random() < 0.9) {
+		return quality + ' ' + animal;
+	} else {
+		return 'Mr. Gyroscope :(';
+	}
+}
+
 function debug(text, refresh) {
     if (document.getElementById("debug")) {
         if (refresh != undefined && refresh) {
@@ -103,3 +164,5 @@ function timestamp() {
 Vector.prototype.theta = function() {
     return Math.atan2(this.e(2), this.e(1));
 }
+
+//for (var i = 0; i < 100; ++i) {debug(randomUsername());}

@@ -26,6 +26,7 @@ function Game(/*optional*/ record) {
     this.inProgress = false;
     this.player = null;
     this.users = new Object();
+    this.peruser = new Object();
 }
 Game.prototype = {
     isInProgress: function() {

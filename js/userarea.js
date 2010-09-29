@@ -30,12 +30,14 @@ var UserArea = Game.Class({
 		    this.throwRandomly();
 		    this.display();
 		} else {
+			this.game.peruser['UserArea'] = ['username'];
 			Events.put({type: 'peruser', cls: 'UserArea', args: ['username']});
+			this.serialize = function() {};
 		}
 	}
 });
 
-UserAreaReq.construct = Game.Constructor({
+UserArea.construct = Game.Constructor({
 	id: "userArea",
 	category: "user",
 	priority: 1,
