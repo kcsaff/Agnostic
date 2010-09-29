@@ -50,6 +50,8 @@ Game.prototype = {
 		    var obj = this.objects[key.slice(0, dpos)];
 		    if (!obj) {
 		    	debug('not found', obj);
+		    } else if (!obj.remote[key.slice(dpos + 1)]){
+		    	debug('not found', obj, 'remote', key.slice(dpos + 1));
 		    } else {
 		    	obj.remote[key.slice(dpos + 1)].apply(obj, data.split(" "));
 		    }

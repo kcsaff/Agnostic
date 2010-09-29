@@ -59,7 +59,7 @@ Card.createDeck = Game.Constructor({
 
 
 function dragArbitraryRotate(object, event) {
-    result = {};
+    var result = {};
     result.object = object;
     result.mouseFirstPos = Mouse.getCoords(event);
     result.firstRotation = object.currentRotation || 0;
@@ -75,14 +75,15 @@ function dragArbitraryRotate(object, event) {
 }
 
 function dragMoveAndRotate(object, event) {
-    result = {};
+    var result = {};
     result.object = object;
+    object.width, object.height;//firefox workaround??
     result.offset = object.toLocalCoords(Mouse.getCoords(event));
     result.lastPos = Mouse.getCoords(event);
     result.move = function (mousePos) {
         var thisTime = (new Date()).getTime();
-	if (Math.abs(this.offset.e(1)) < this.object.e.width / 4
-	        && Math.abs(this.offset.e(2)) < this.object.e.height / 4) {//move only
+	if (Math.abs(this.offset.e(1)) < this.object.width / 4
+	        && Math.abs(this.offset.e(2)) < this.object.height / 4) {//move only
 	    this.object.move(mousePos.subtract(this.lastPos));
 	} else {
             this.velocity = mousePos.subtract(this.lastPos).x(1 / (thisTime - this.lastTime))
@@ -110,14 +111,14 @@ function dragMoveAndRotate(object, event) {
 		}
 		if (!this.object.points) {
 		    this.object.points = new Array();
-		    this.object.points.push(Vector.create([-this.object.e.width / 2,
-						           -this.object.e.height / 2]));
-		    this.object.points.push(Vector.create([+this.object.e.width / 2,
-						           -this.object.e.height / 2]));
-		    this.object.points.push(Vector.create([-this.object.e.width / 2,
-						           +this.object.e.height / 2]));
-		    this.object.points.push(Vector.create([+this.object.e.width / 2,
-						           +this.object.e.height / 2]));
+		    this.object.points.push(Vector.create([-this.object.width / 2,
+						           -this.object.height / 2]));
+		    this.object.points.push(Vector.create([+this.object.width / 2,
+						           -this.object.height / 2]));
+		    this.object.points.push(Vector.create([-this.object.width / 2,
+						           +this.object.height / 2]));
+		    this.object.points.push(Vector.create([+this.object.width / 2,
+						           +this.object.height / 2]));
 		}
 		/*
 		  First determine which point we want to rotate around.  This should
@@ -195,7 +196,7 @@ function dragMoveAndRotate(object, event) {
 
 
 function dragFlip(object, event) {
-    result = {};
+    var result = {};
     result.object = object;
     result.object.image_index = result.object.image_index || 0;
     result.flipped = false;

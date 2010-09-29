@@ -140,8 +140,8 @@ var agImage = Game.Class({
 	    },
 	    display: function() {
 	        document.body.appendChild(this.e);
-	        this.width = this.e.width || numerize(this.e.style.minWidth) || 0;
-	        this.height = this.e.height || numerize(this.e.style.minHeight) || 0;
+	        this.width = numerize(this.e.width) || numerize(this.e.style.minWidth) || 0;
+	        this.height = numerize(this.e.height) || numerize(this.e.style.minHeight) || 0;
 	    },
 	    cleanUp: function() {
 	        document.body.removeChild(this.e);
@@ -153,8 +153,8 @@ agImage.onload = function() {
 	var oldHeight = this.height;
 	this.width = this.width || numerize(this.e.width);
 	this.height = this.height || numerize(this.e.height);
-	this.e.style.top = numerize(this.e.style.top) + (oldHeight - this.height) / 2;
-	this.e.style.left = numerize(this.e.style.left) + (oldWidth - this.width) / 2;
+	//this.e.style.top = numerize(this.e.style.top) + (oldHeight - this.height) / 2;
+	//this.e.style.left = numerize(this.e.style.left) + (oldWidth - this.width) / 2;
 }
 
 function moveToEnd(array, item) {
