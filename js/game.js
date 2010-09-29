@@ -24,6 +24,8 @@ function Game(/*optional*/ record) {
     this.record.attachCallback(this);
     this.nextId = 1;
     this.inProgress = false;
+    this.player = null;
+    this.users = new Object();
 }
 Game.prototype = {
     isInProgress: function() {
@@ -120,3 +122,50 @@ Game.getConstructorsByCategory = function(/*optional*/key) {
     }
     return result;
 }
+
+Game.User = Game.Class({
+	id: 'User',
+	__init__: function(username) {
+		this.username = Game.User.decode(username);
+		this.game.users[this.username] = this;
+		this.seated = '';
+	},
+	encode: function(username) {
+		return encodeURIComponent(username);
+	},
+	decode: function(username) {
+		return decodeURIComponent(username);
+	},
+	prototype: {
+		serialize: function() {
+			if (this === this.game.player) {
+				this.game.outgoing(this.id + '.seat', this.game.record.id);
+			} else {
+				this.game.outgoing(this.id + '.seat', '');
+			}
+		},
+		remote: {
+			seat: function(id) {
+				if (this === this.game.player && id == '') {
+					this.serialize();
+				} else {
+					this.seated = id;
+				}
+			}
+		},
+		isSeated: function() {
+			return !!this.seated;
+		},
+		takeSeat: function() {
+			var oldUser = this.game.player;
+			this.game.player = this;
+			this.serialize();
+		},
+		cleanUp: function() {
+			if (this === this.game.player) {
+				this.game.player = null;
+			}
+			delete this.game.users[this.username];
+		},
+	}
+});

@@ -30,6 +30,7 @@ function Screen(connection, game) {
 	this.display();
 	Events.attach('ping', Delegate(this, Screen.events.ping));
 	Events.attach('form', Delegate(this, Screen.events.form));
+	Events.attach('peruser', Delegate(this, Screen.events.peruser));
 }
 Screen.prototype = {
 	createDialog: function() {
@@ -216,6 +217,34 @@ Screen.events = {
 			Screen.buttons[key].action.apply(this, arguments);
 		}
 	},
+	peruser: function(event) {
+		
+	},
+}
+Screen.userdata = {
+	username: {
+		order: -1, 
+		html: '<label for="wantUsername">What would you like to be called?&nbsp;&nbsp;</label>' +
+			'<input type="text" id="wantUsername" name="username" />',
+		validate: function(username) {
+			if (!username) {
+				return "Please enter a user name.";
+			} else if (this.game.users[username] && this.game.users[username].isSeated()) {
+				return "That name is already in use.";
+			} else {
+				return ""; //ok
+			}
+		},
+		action: function(username) {
+			var player = null;
+			if (this.game.users[username]) {
+				player = this.game.users[username];
+			} else {
+				player = this.game.create("User " + Game.User.encode(username));
+			}
+			player.takeSeat();
+		},
+	}
 }
 Screen.buttons = {
 	startGame: {

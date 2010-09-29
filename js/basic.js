@@ -75,6 +75,17 @@ function str(obj) {
 	}
 }
 
+function len(obj) {
+	var result = 0;
+	for (var i in obj) {++result;}
+	return result;
+}
+
+function isEmpty(obj) {
+	for (var i in obj) {return false;}
+	return true;
+}
+
 function debug(text, refresh) {
     if (document.getElementById("debug")) {
         if (refresh != undefined && refresh) {

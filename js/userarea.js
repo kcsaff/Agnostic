@@ -17,27 +17,31 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-var UserArea = extend
-(agImage, 
- function(username, id) {
-    agImage.apply(this, ["div"]);
-    this.e.style.minWidth = 300;
-    this.e.style.minHeight = 100;
-    this.e.style.background = "black";
-    makeDraggable(this);
-    this.throwRandomly();
-    this.finalize(id, username);
-},
- {
- }
- );
-UserArea.recreate = function(id, desc) {
-    return new UserArea(desc, id);
-}
-registerClass(UserArea, "UserArea");
+var UserArea = Game.Class({
+	id: 'UserArea',
+	subclass: 'agImage',
+	__init__: function(owner) {
+		if (owner) {
+			agImage.apply(this, ["div"]);
+		    this.e.style.minWidth = 300;
+		    this.e.style.minHeight = 100;
+		    this.e.style.background = "black";
+		    makeDraggable(this);
+		    this.throwRandomly();
+		    this.display();
+		} else {
+			Events.put({type: 'peruser', cls: 'UserArea', args: ['username']});
+		}
+	}
+});
 
-UserArea.createForm = function() {
-    return '<label for="wantUserArea">USER AREA</label><br />\
-<input type="checkbox" name="item" id="wantUserArea" value="User.require(\'UserArea\')">\
-Add a user-private area.</input>';
-}
+UserAreaReq.construct = Game.Constructor({
+	id: "userArea",
+	category: "user",
+	priority: 1,
+	html: 'USER AREA',
+	action: function(game, owner) {
+		game.create('UserArea', owner);
+	}
+});
+
