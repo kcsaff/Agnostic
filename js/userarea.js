@@ -37,10 +37,23 @@ var UserArea = Game.Class({
 		    this.e.style.fontSize = '24pt';
 		    this.e.style.fontFamily = 'monospace';
 		    this.e.style.fontWeight = 'bold';
+		    this.e.style.overflow = 'hidden';
 		    this.e.innerHTML = Game.User.decode(owner);
 		    makeDraggable(this);
 		    this.throwRandomly();
 		    this.display();
+		    
+		    var f = document.createElement('div');
+		    f.style.minWidth = 80;
+		    f.style.minHeight = 80;
+		    f.style.background = "red";
+		    f.style.opacity = 1;
+		    f.style.position = 'absolute';
+		    f.style.top = -3;
+		    f.style.left = 10;
+		    f.style.MozTransform = 'rotate(20deg)';
+		    this.e.appendChild(f);
+		    
 		} else {
 			this.game.peruser['UserArea'] = ['username'];
 			Events.put({type: 'peruser', cls: 'UserArea', args: ['username']});
