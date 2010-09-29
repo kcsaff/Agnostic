@@ -99,18 +99,14 @@ Game.Class = function(item) {
     	item.__init__.apply(this, arguments);
     };
     clone(item, Game.Class[item.name]);
-	debug('classy');
     if (Game.Class[item.name].subclass) {
-    	debug('set superclass');
     	var superclass = Game.Class[Game.Class[item.name].subclass];
     	var wcon = function() {};
     	wcon.prototype = superclass.prototype;
     	Game.Class[item.name].prototype = new wcon();
     	clone(item.prototype, Game.Class[item.name].prototype);
     	Game.Class[item.name].prototype.superclass = superclass;
-    	debug(Game.Class[item.name].prototype.superclass);
     }
-    debug(Game.Class[item.name]);
     return Game.Class[item.name];
 }
 Game.Constructor = function(arg) {

@@ -20,7 +20,6 @@
 function Screen(connection, game) {
 	this.connection = connection;
 	this.game = game;
-	debug("Screen");
 	this.lastConnected = null;
 	this.dialogs = clone(Screen.dialogs);
 	this.dialogs.start.active = true;
@@ -91,7 +90,6 @@ Screen.prototype = {
 		for (var i in this.dialogs) {
 			if (this.dialogs[i].active && (!d
 					|| (this.dialogs[i].priority > d.priority)) ) {
-				debug(i + this.dialogs[i].active);
 				d = this.dialogs[i];
 			}
 		}
@@ -203,7 +201,6 @@ Screen.events = {
 	},
 	form: function(event) {
 		var key = event.args[1];
-		debug('form' + key);
 		if (Screen.buttons[key]) {
 			Screen.buttons[key].action.apply(this, arguments);
 		}
