@@ -54,18 +54,17 @@ Game.prototype = {
 		}
     },
     create: function(data, id) {
-		var result = new Object();
+    	var adata = data.split(" ");
+		var result = constructFromPrototype(Game.Class[adata[0]].prototype);
+		result.id = id;
 		if (!id)
 		{
-			id = this.getNextId();
-			this.record.outgoing(id, data);
+			result.id = this.getNextId();
+			this.record.outgoing(result.id, data);
 		}
-		result.id = id;
 		result.game = this;
-		this.objects[id] = result;
-    	var data = data.split(" ");
-		result.__proto__ = Game.Class[data[0]].prototype;
-		Game.Class[data[0]].apply(result, data.slice(1));
+		this.objects[result.id] = result;
+		Game.Class[adata[0]].apply(result, adata.slice(1));
 		result.serialize && result.serialize();
 		return result;
     },
@@ -92,7 +91,7 @@ Game.prototype = {
 Game.Class = function(item) {
     Game.Class[item.name] = function(/*arguments*/) {
     	item.__init__.apply(this, arguments);
-    }
+    };
     clone(item, Game.Class[item.name]);
 	debug('classy');
     if (Game.Class[item.name].subclass) {
@@ -105,7 +104,7 @@ Game.Class = function(item) {
     	Game.Class[item.name].prototype.superclass = superclass;
     	debug(Game.Class[item.name].prototype.superclass);
     }
-    debug(Game.Class[item.name])
+    debug(Game.Class[item.name]);
     return Game.Class[item.name];
 }
 Game.Constructor = function(arg) {

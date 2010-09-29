@@ -28,10 +28,14 @@ function clone(from, /*optional*/ to) {
 	return to;
 }
 
+function constructFromPrototype(prototype) {
+    var wc = function() {};
+    wc.prototype = prototype;
+    return new wc();
+}
+
 function extend(superclass, constructor, prototype) {
-    var withoutcon = function () {};
-    withoutcon.prototype = superclass.prototype;
-    constructor.prototype = new withoutcon();
+    constructor.prototype = constructFromPrototype(superclass.prototype);
     clone(prototype, constructor.prototype);
     return constructor;
 }
