@@ -137,25 +137,6 @@ Screen.prototype = {
 		result.push('</form>')
 		return result.join("");
 	},
-	startNewGame: function() {
-		var result = new Array();
-		
-	},
-}
-
-function startNewGame(isServer) {
-    var wants = '\
-Add some game elements to begin.\
-<form id="questions" action="" method="GET" \
-onSubmit="return createNewGame(this, ' + isServer + ')">';
-    for (var c in classRegistry) {
-    	if (classRegistry[c].createForm) {
-    		wants += '<br />' + classRegistry[c].createForm() + '<br />';
-    	}
-    }
-    wants += '<br /><input type="submit" value="Done." /></form>';
-    demand("create", 6, wants);
-    undemand("connection");
 }
 
 Screen.dialogs = {
@@ -173,6 +154,10 @@ Screen.dialogs = {
 '<form id="gameElements" action="" method="GET" onSubmit="Events.form(this, \'createGame\'); return false;">' +
 '</form>'
 	},
+	'wait': {
+	    priority: 100,
+	    html: '<div>Please wait...</div><div>(Math is hard!)</div>'
+	}
 }
 Screen.messages = {
 	connection: function() {
@@ -186,7 +171,11 @@ Screen.messages = {
 		}
 	},
 	gameStatus: function() {
+	if (this.game.isInProgress()) {
+	    return this.createButton('joinGame');
+	} else {
 		return this.createButton('startGame');
+	}
 	},
 	gameElements: function() {
 		var result = new Array();
@@ -225,13 +214,25 @@ Screen.buttons = {
 		label: "No game in progress:  ",
 		value: "Start new game",
 		action: function(form) {
+	    this.dialogs.wait.active = true;	              
+			this.display();
 			this.dialogs.start.active = false;
 			this.dialogs['new'].active = true;
+	    this.dialogs.wait.active = false;	              
 			this.display();
 		}	
 	},
+	joinGame: {
+	    value: "Join game in progress",
+	    action: function(form) {
+	        this.dialogs.start.active = false;
+		this.display();
+	    }
+	},
 	createGame: {
 		action: function(event) {
+	    this.dialogs.wait.active = true;	              
+			this.display();
 			var form = event.form;
 		    for (var i in form.item) {
 		        if (form.item[i] && form.item[i].checked) {
@@ -239,6 +240,7 @@ Screen.buttons = {
 		        }
 		    }
 			this.dialogs['new'].active = false;
+	    this.dialogs.wait.active = false;	              
 			this.display();
 		}
 	},

@@ -23,8 +23,12 @@ function Game(/*optional*/ record) {
     this.record = record;
     this.record.attachCallback(this);
     this.nextId = 1;
+    this.inProgress = false;
 }
 Game.prototype = {
+    isInProgress: function() {
+	return this.inProgress;
+    },
     remove: function(key) {
 		if (this.objects[key]) {
 		    this.objects[key].cleanUp();
@@ -48,12 +52,14 @@ Game.prototype = {
     	this.record.outgoing(key, data);
     },
     clear: function() {
+	this.inProgress = false;
 		var backup = this.record.generate(true);
 		for (var key in this.objects) {
 		    this.remove(key);
 		}
     },
     create: function(data, id) {
+	this.inProgress = true;
     	var adata = data.split(" ");
 		var result = constructFromPrototype(Game.Class[adata[0]].prototype);
 		result.id = id;
