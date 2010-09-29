@@ -94,6 +94,7 @@ class FileNotFound(object):
     pass
 
 class Server(BaseHTTPRequestHandler):
+    request_version = "HTTP/1.1"
     paths = {'': '', 
              'js':'js',
              'card': 'card',
@@ -112,14 +113,16 @@ class Server(BaseHTTPRequestHandler):
             if path in ['o', 't']:
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
-                self.end_headers()
                 if path == 'o':
                     data = self.rsbp.objects.items()
                     title = 'objects'
                 elif path == 't':
                     data = enumerate(self.rsbp.transactions)
                     title = 'transactions'
-                self.wfile.write(to_html(title, to_table(data)))
+                result = to_html(title, to_table(data))
+                self.send_header('Content-length', len(result))
+                self.end_headers()
+                self.wfile.write(result)
                 return
                 
             
@@ -127,12 +130,12 @@ class Server(BaseHTTPRequestHandler):
             type_ = os.path.splitext(path)[1]
             if type_ not in self.types:
                 raise FileNotFound
-            f = open(path, 'rb')
-            self.send_response(200)
-            self.send_header('Content-type', self.types[type_])
-            self.end_headers()
-            self.wfile.write(f.read())
-            f.close()
+            with open(path, 'rb') as f:
+                self.send_response(200)
+                self.send_header('Content-type', self.types[type_])
+                result = f.read()
+                self.end_headers()
+                self.wfile.write(result)
             return
         except Exception, e:
             self.send_error(404, 'File not found: %s, %s' % (self.path, e));
@@ -144,6 +147,7 @@ class Server(BaseHTTPRequestHandler):
             #result = self.rsbp.handle(self.rfile.read(int(length[0])))
             self.send_response(200)
             self.send_header('Content-type', 'application/x-www-form-urlencoded')
+            self.send_header('Content-length', len(result))
             self.end_headers()
             self.wfile.write(result)
                 

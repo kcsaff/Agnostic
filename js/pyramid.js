@@ -18,7 +18,7 @@
 */
 
 var Pyramid = Game.Class({
-	name: 'Pyramid',
+	id: 'Pyramid',
 	subclass: 'agImage',
 	__init__: function(src) {
 		agImage.apply(this);
@@ -36,7 +36,7 @@ Pyramid.colors = "red green blue yellow purple orange".split(" ");
 for (var c in Pyramid.colors) {
     var color = Pyramid.colors[c];
     Pyramid.createStash[color] = Game.Constructor({
-	name: color + "Stash",
+	id: color + "Stash",
 	category: "pyramids",
 	priority: 1,
 	html: '<img src="pyramid/'+color+'-pyramid.png" />',

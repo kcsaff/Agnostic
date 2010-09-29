@@ -18,7 +18,7 @@
 */
 
 var Card = Game.Class({
-	name: 'Card',
+	id: 'Card',
 	subclass: 'agImage',
 	__init__: function(front, back) {
 		agImage.apply(this);
@@ -34,7 +34,7 @@ var Card = Game.Class({
 });
 
 Card.createDeck = Game.Constructor({
-	name: "standardDeck",
+	id: "standardDeck",
 	category: "cards",
 	priority: 1,
 	html: '<img src="card/spades-a-75.png" />',

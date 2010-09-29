@@ -18,7 +18,7 @@
 */
 
 var Tarot = Game.Class({
-	name: 'Tarot',
+	id: 'Tarot',
 	subclass: 'Card',
 	__init__: function(front, back) {
 	    Card.apply(this, arguments);
@@ -26,7 +26,7 @@ var Tarot = Game.Class({
 });
 
 Tarot.createDeck = Game.Constructor({
-	name: "tarotDeck",
+	id: "tarotDeck",
 	category: "cards",
 	priority: 1,
 	html: '<img src="tarot/ar00.png" />',

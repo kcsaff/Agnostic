@@ -95,19 +95,19 @@ Game.prototype = {
     },
 }
 Game.Class = function(item) {
-    Game.Class[item.name] = item.__init__;
-    clone(item, Game.Class[item.name]);
-    if (Game.Class[item.name].subclass) {
-    	var superclass = Game.Class[Game.Class[item.name].subclass];
-    	Game.Class[item.name].prototype = constructFromPrototype(superclass.prototype);
-    	clone(item.prototype, Game.Class[item.name].prototype);
+    Game.Class[item.id] = item.__init__;
+    clone(item, Game.Class[item.id]);
+    if (Game.Class[item.id].subclass) {
+    	var superclass = Game.Class[Game.Class[item.id].subclass];
+    	Game.Class[item.id].prototype = constructFromPrototype(superclass.prototype);
+    	clone(item.prototype, Game.Class[item.id].prototype);
     }
-    return Game.Class[item.name];
+    return Game.Class[item.id];
 }
 Game.Constructor = function(arg) {
-	Game.Constructor[arg.name] = arg.action;
-	clone(arg, Game.Constructor[arg.name]);
-	return Game.Constructor[arg.name];
+	Game.Constructor[arg.id] = arg.action;
+	clone(arg, Game.Constructor[arg.id]);
+	return Game.Constructor[arg.id];
 }
 Game.getConstructorsByCategory = function(/*optional*/key) {
     var result = new Object();

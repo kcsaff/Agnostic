@@ -18,7 +18,7 @@
 */
 
 var agImage = Game.Class({
-	name: 'agImage',
+	id: 'agImage',
 	__init__: function(eltype) {
 	    this.e = document.createElement(eltype || "img");
 	    this.e.style.position = "absolute";

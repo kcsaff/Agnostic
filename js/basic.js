@@ -21,7 +21,7 @@
 //http://www.lshift.net/blog/2006/08/03/subclassing-in-javascript-part-2
 
 function clone(from, /*optional*/ to) {
-	if (!to) {to = new Object;}
+	if (!to) {to = new Object();}
 	for (var k in from) {
 		to[k] = from[k];
 	}
@@ -55,7 +55,8 @@ function str(obj) {
 		for (var key in obj) {
 			result.push(key);
 			result.push(': ');
-			result.push(obj[key]);
+			try {result.push(obj[key]);}
+			catch(e) {result.push('--Error--');}
 			result.push(', ');
 		}
 		result.push('}');
