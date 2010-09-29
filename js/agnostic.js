@@ -151,7 +151,7 @@ function moveToEnd(array, item) {
 }
 
 function fixZOrder(array) {
-    for (var i in array) {
+    for (var i=0; i < array.length; ++i) {
         array[i].e.style.zIndex = (array[i].baseZ || 0) + i;
     }
 }
