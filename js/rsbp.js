@@ -48,8 +48,10 @@ RSBP.prototype = {
         var parts = data.split("..");
         for (var i = 1;/*ignore before first separator*/ i < parts.length; ++i) {
             if (parts[i][0] == 'u') {
-        	this.id = parts[i].slice(1);
-        	continue;
+	        	this.id = parts[i].slice(1);
+	        	this.record.id = this.id;
+            	debug('got id! ' + this.id);
+	        	continue;
             }
             var ds1 = parts[i].indexOf("-");
             var meta = parts[i].slice(0, ds1);
@@ -60,11 +62,11 @@ RSBP.prototype = {
             var objectId = meta.slice(ds2 + 1);
             if (meta[ds2] == 'd') {
                 if (payload == this.id) {
-		    continue;
-		} 
-		this.record.incoming(objectId, null);
-	    } else if (meta[ds2] == 'o') {
-            	this.record.incoming(objectId, null);
+				    continue;
+				} 
+				this.record.incoming(objectId, null);
+		    } else if (meta[ds2] == 'o') {
+	            this.record.incoming(objectId, null);
             } else {
             	safeAlert("Unknown data type " + meta[ds2]);
             }

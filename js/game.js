@@ -66,6 +66,7 @@ Game.prototype = {
     	var data = data.split(" ");
 		result.__proto__ = Game.Class[data[0]].prototype;
 		Game.Class[data[0]].apply(result, data.slice(1));
+		result.serialize && result.serialize();
 		return result;
     },
     construct: function(data) {
