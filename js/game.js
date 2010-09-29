@@ -37,7 +37,6 @@ Game.prototype = {
 		} else if (data === null) {
 		    this.remove(key);
 		} else if (key.slice(-7) == '.create') {
-		    debug(key);
 		    this.create(data, key.slice(0, -7));
 		} else {
 		    var dpos = key.lastIndexOf('.');
@@ -60,9 +59,8 @@ Game.prototype = {
 		result.id = id;
 		if (!id)
 		{
-		    debug(id);
 			result.id = this.getNextId();
-			this.record.outgoing(result.id + '.create', data);
+			this.outgoing(result.id + '.create', data);
 		}
 		result.game = this;
 		this.objects[result.id] = result;

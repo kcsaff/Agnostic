@@ -87,12 +87,11 @@ var agImage = Game.Class({
 	        } 
 	    },
 	    remote: {
-		    move: function(data) {
+		move: function(x, y, theta, i) {
 		        this.moveToFront();
-		        var nums = data.split(" ", 4);
-		        var center = Vector.create([parseFloat(nums[0]), parseFloat(nums[1])]);
-		        var degrees = parseFloat(nums[2]);
-		        this.image_index = parseInt(nums[3] || 0) % this.images.length;
+		        var center = Vector.create([parseFloat(x), parseFloat(y)]);
+		        var degrees = parseFloat(theta);
+		        this.image_index = parseInt(i || 0) % this.images.length;
 		        this.e.src = this.images[this.image_index];
 		        this.recenter(center);
 		        this.setRotation(0, degrees);

@@ -206,7 +206,6 @@ RSBP.Record.prototype = {
 	return result;
     },
     attachCallback: function(callback) {
-	debug(callback);
     	var arr = this.getTransactions(true);
         for (var i in arr) {
             callback.incoming(arr[i][1], arr[i][0][1]);
@@ -222,7 +221,6 @@ RSBP.Record.prototype = {
         for (var i in arr) {
             result.push(RSBP.encode(arr[i][0], arr[i][1]));
         }
-	//debug(result);
         return result.join("");
     },
     reset: function() {
