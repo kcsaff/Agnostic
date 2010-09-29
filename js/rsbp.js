@@ -64,6 +64,7 @@ RSBP.prototype = {
                 if (payload == this.id) {
 				    continue;
 				} 
+		debug('DD' + payload + '!=' + this.id);
 				this.record.incoming(objectId, null);
 		    } else if (meta[ds2] == 'o') {
 	            this.record.incoming(objectId, payload);
@@ -140,9 +141,9 @@ RSBP.prototype = {
 	this.record.outgoing(key, data);
     }
 }
-RSBP.encode = function(key, data) {
+    RSBP.encode = function(key, data, id) {
     if (data === null) {
-	return "..d" + key + "-" + this.id;
+	return "..d" + key + "-" + id;
     } else {
 	return "..o" + key + "-" + data;
     }
@@ -152,12 +153,14 @@ RSBP.Record = function() {
     this.pending = new Object();
     this.callbacks = new Array();
     this.transaction = 0;
+    this.special = new Array();
 }
 RSBP.Record.prototype = {
 	clone: function() {
 		result = new RSBP.Record();
 		result.objects = clone(this.objects);
 		result.pending = clone(this.pending);
+		result.special = clone(this.special);
 		result.transaction = this.transaction;
 		return result;
 	},
@@ -213,13 +216,14 @@ RSBP.Record.prototype = {
 	this.callbacks.push(callback);
     },
     generate: function(/*optional*/all) {
-        var result = new Array();
+        var result = this.special;
+	this.special = new Array();
         if (all) {
-            result.push(RSBP.encode("", null));
+            result.push(RSBP.encode("", null, this.id));
         }
         var arr = this.getTransactions(all);
         for (var i in arr) {
-            result.push(RSBP.encode(arr[i][0], arr[i][1]));
+            result.push(RSBP.encode(arr[i][0], arr[i][1], this.id));
         }
         return result.join("");
     },
@@ -228,5 +232,7 @@ RSBP.Record.prototype = {
 	this.pending = new Object();
 	this.transaction = 0;
 	this.join();
+	this.special = new Array();
+	this.special.push(RSBP.encode("", null, this.id));
     }
 }

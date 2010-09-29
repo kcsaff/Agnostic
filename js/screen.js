@@ -100,7 +100,7 @@ Screen.prototype = {
 	display: function() {
 		var activeDialog = this.getActiveDialog();
 		if (activeDialog === this.currentDialog) {
-			if (activeDialog.refresh) {
+			if (activeDialog && activeDialog.refresh) {
 				this.applyMessages();
 			}
 			return;
@@ -233,6 +233,8 @@ Screen.buttons = {
 		action: function(event) {
 	    this.dialogs.wait.active = true;	              
 			this.display();
+	    this.game.clear();
+	    this.game.record.reset();
 			var form = event.form;
 		    for (var i in form.item) {
 		        if (form.item[i] && form.item[i].checked) {
