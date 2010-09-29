@@ -233,7 +233,7 @@ Screen.buttons = {
 	createGame: {
 		action: function(event) {
 			var form = event.form;
-		    for (var i in form) {
+		    for (var i in form.item) {
 		        if (form.item[i] && form.item[i].checked) {
 		            this.game.construct(form.item[i].value); 
 		        }

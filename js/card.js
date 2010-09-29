@@ -39,7 +39,7 @@ Card.createDeck = Game.Constructor({
 	priority: 1,
 	html: '<img src="card/spades-a-75.png" />',
 	action: function(game, jokers) {
-		debug(str(arguments));
+		debug('createDeck' + str(arguments));
 		var jokers = parseInt(jokers);
 	    var suits = "clubs diamonds hearts spades".split(" ");
 	    var ranks = "a 2 3 4 5 6 7 8 9 10 j q k".split(" ");
