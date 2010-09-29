@@ -94,7 +94,7 @@ class FileNotFound(object):
     pass
 
 class Server(BaseHTTPRequestHandler):
-    #request_version = "HTTP/1.1"
+    request_version = "HTTP/1.1"
     paths = {'': '', 
              'js':'js',
              'card': 'card',

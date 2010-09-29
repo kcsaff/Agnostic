@@ -48,7 +48,11 @@ Game.prototype = {
 		} else {
 		    var dpos = key.lastIndexOf('.');
 		    var obj = this.objects[key.slice(0, dpos)];
-		    obj.remote[key.slice(dpos + 1)].apply(obj, data.split(" "));
+		    if (!obj) {
+		    	debug('not found', obj);
+		    } else {
+		    	obj.remote[key.slice(dpos + 1)].apply(obj, data.split(" "));
+		    }
 		}
     },
     outgoing: function(key, data) {
