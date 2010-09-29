@@ -17,57 +17,38 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+var Pyramid = Game.Class({
+	name: 'Pyramid',
+	subclass: 'agImage',
+	__init__: function(src) {
+		agImage.apply(this);
+	    this.e.src = src;
+	    makeDraggable(this);
+	    this.images = [src];
+		this.baseZ = 200; //show above all cards.
+	    this.throwRandomly();
+	    this.display();
+	}
+});
 
-var Pyramid = extend
-(agImage, 
- function(src, id) {
-    agImage.apply(this);
-    this.e.src = src;
-    makeDraggable(this);
-    this.images = [src];
-    this.baseZ = 200; //show above all cards.
-    this.throwRandomly();
-    if (Math.random() < 0.33) {
-    	this.flip();
-    }
-    this.finalize(id, src);
-},
- {
- }
- );
-Pyramid.recreate = function(id, desc) {
-    return new Pyramid(desc, id);
-}
-registerClass(Pyramid, "Pyramid");
-
-Pyramid.createStash = function(color) {
-    for (var i = 0; i < 5; ++i) {
-	new Pyramid("pyramid/" + color + "-pyramid.png");
-	new Pyramid("pyramid/" + color + "-pyramid-medium.png");
-	new Pyramid("pyramid/" + color + "-pyramid-small.png");
-    }
-}
-
-Pyramid.createStashes = function(color) {
-    var colors = "red yellow green blue".split(" ");
-    for (var i in colors) {
-	Pyramid.createStash(colors[i]);
-    }
+Pyramid.createStash = new Array();
+Pyramid.colors = "red green blue yellow purple orange".split(" ");
+for (var c in Pyramid.colors) {
+    var color = Pyramid.colors[c];
+    Pyramid.createStash[color] = Game.Constructor({
+	name: color + "Stash",
+	category: "pyramids",
+	priority: 1,
+	html: '<img src="pyramid/'+color+'-pyramid.png" />',
+	'color': color,
+	action: function(game) {
+	    for (var i = 0; i < 5; ++i) {
+		game.create("Pyramid pyramid/"+this.color+"-pyramid.png");
+		game.create("Pyramid pyramid/"+this.color+"-pyramid-medium.png");
+		game.create("Pyramid pyramid/"+this.color+"-pyramid-small.png");
+	    }
+	}
+    });
 }
 
-Pyramid.createForm = function() {
-    var result = new Array();
-    var colors = "red green blue yellow purple orange".split(" ");
-    result.push('<table><tr align="center">');
-    for (var i in colors) {
-	result.push('<td><label for="Pyr' + i + '"><img src="pyramid/' 
-		    + colors[i] + '-pyramid.png" /></label></td>');
-    }
-    result.push('</tr><tr align="center">');
-    for (var i in colors) {
-	result.push('<td><input type="checkbox" name="item" id="Pyr' + i 
-		    + '" value="Pyramid.createStash(\'' + colors[i] + '\')"></input></td>');
-    }
-    result.push('</tr></table>Add some pyramid stashes.<br />');
-    return result.join('');
-}
+

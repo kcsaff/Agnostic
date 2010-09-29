@@ -78,7 +78,7 @@ Game.prototype = {
     	var data = data.split(" ");
     	var key = data[0];
     	data.splice(0, 1, this);
-    	return Game.Constructor[key].apply(null, data);
+    	return Game.Constructor[key].apply(Game.Constructor[key], data);
     },
     getNextId: function() {
     	return this.record.id + '.' + this.nextId++;
@@ -106,10 +106,7 @@ Game.Class = function(item) {
 }
 Game.Constructor = function(arg) {
 	Game.Constructor[arg.name] = arg.action;
-	Game.Constructor[arg.name].name = arg.name;
-	Game.Constructor[arg.name].category = arg.category;
-	Game.Constructor[arg.name].priority = arg.priority;
-	Game.Constructor[arg.name].html = arg.html;
+	clone(arg, Game.Constructor[arg.name]);
 	return Game.Constructor[arg.name];
 }
 Game.getConstructorsByCategory = function(/*optional*/key) {
