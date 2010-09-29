@@ -191,7 +191,7 @@ Screen.messages = {
 	    for (var i in rows[cat]) {
 		result.push('<td>');
 		var name = rows[cat][i].name;
-		result.push('<input type="checkbox" name="item" id="'+name+'" value="'+name+'">')
+		result.push('<input type="checkbox" name="item" id="'+name+'" value="'+name+'">');
 		result.push('</td>');
 	    }
 	    result.push('</tr></table>');
