@@ -64,6 +64,9 @@ Game.prototype = {
     create: function(data, id) {
 	this.inProgress = true;
     	var adata = data.split(" ");
+    	if (adata[0] == 'UserArea') {
+    		debug(adata, data, id, this.player && this.player.username);
+    	}
 		var result = constructFromPrototype(Game.Class[adata[0]].prototype);
 		result.id = id;
 		if (!id)

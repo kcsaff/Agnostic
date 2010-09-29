@@ -186,6 +186,21 @@ Screen.buttons = {
 					var value = document.getElementById(key).value;
 					Screen.userdata[key].action.apply(this, [value]);
 				}
+				for (var c in this.game.peruser) {
+					var args = new Array();
+					args.push(c);
+					for (var i in this.game.peruser[c]) {
+						var req = this.game.peruser[c][i];
+						var value = this.game.player[req];
+						debug('yay', i, req, value);
+						if (req == 'username') {
+							args.push(Game.User.encode(value));
+						} else {
+							args.push(value);
+						}
+					}
+					this.game.create(args.join(' '));
+				}
 				this.dialogs.playerReq.active = false;
 				this.display();
 			}

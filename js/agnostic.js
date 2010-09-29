@@ -17,6 +17,12 @@
 # along with Agnostic.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+function numerize(value) {
+	var result = parseInt(value);
+	if (result != NaN) {return result;}
+	return parseInt(value.slice(0, -2)); //get rid of px
+}
+
 var agImage = Game.Class({
 	id: 'agImage',
 	__init__: function(eltype) {
@@ -29,16 +35,16 @@ var agImage = Game.Class({
 	byOrder: new Array(),
 	prototype: {
 	    getLeft: function() {
-	        return parseInt(this.e.style.left);
+	        return numerize(this.e.style.left);
 	    },
 	    getRight: function() {
-	        return parseInt(this.e.style.left) + this.e.width;
+	        return numerize(this.e.style.left) + this.e.width;
 	    },
 	    getTop: function() {
-	        return parseInt(this.e.style.top);
+	        return numerize(this.e.style.top);
 	    },
 	    getBottom: function() {
-	        return parseInt(this.e.style.top) + this.e.height;
+	        return numerize(this.e.style.top) + this.e.height;
 	    },
 	    getCenter: function() {
 	        return Vector.create([this.getLeft() + this.e.width / 2, 
@@ -87,17 +93,22 @@ var agImage = Game.Class({
 	        } 
 	    },
 	    remote: {
-		move: function(x, y, theta, i) {
-		        this.moveToFront();
-		        var center = Vector.create([parseFloat(x), parseFloat(y)]);
-		        var degrees = parseFloat(theta);
-		        this.image_index = parseInt(i || 0) % this.images.length;
-		        this.e.src = this.images[this.image_index];
-		        this.recenter(center);
-		        this.setRotation(0, degrees);
+			move: function(x, y, theta, i) {
+			        this.moveToFront();
+			        var center = Vector.create([parseFloat(x), parseFloat(y)]);
+			        var degrees = parseFloat(theta);
+			        if (this.images) {
+			        	this.image_index = parseInt(i || 0) % this.images.length;
+				        this.e.src = this.images[this.image_index];
+			        } else {
+			        	this.image_index = 0;
+			        }
+			        this.recenter(center);
+			        this.setRotation(0, degrees);
 		    },
 	    },
 	    flip: function(/*optional*/ amount) {
+	    	if (!this.images) {return;}
 	        this.image_index = (this.image_index || 0) + ((amount == undefined) ? 1 : amount);
 	        this.image_index %= this.images.length;
 	        if (this.image_index < 0) {
@@ -123,6 +134,8 @@ var agImage = Game.Class({
 	    },
 	    display: function() {
 	        document.body.appendChild(this.e);
+	        if (!this.e.width) {this.e.width = numerize(this.e.style.width || this.e.style.minWidth);}
+	        if (!this.e.height) {this.e.height = numerize(this.e.style.height || this.e.style.minHeight);}
 	    },
 	    cleanUp: function() {
 	        document.body.removeChild(this.e);
@@ -188,6 +201,6 @@ function snapRotation(object, increment, closeness) {
 }
 
 function randomLocation() {
-    return Vector.create([parseInt(Math.random() * (window.innerWidth - 200) + 100),
-                          parseInt(Math.random() * (window.innerHeight - 200) + 100)]);
+    return Vector.create([Math.floor(Math.random() * (window.innerWidth - 200) + 100),
+                          Math.floor(Math.random() * (window.innerHeight - 200) + 100)]);
 }

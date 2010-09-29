@@ -49,7 +49,9 @@ function safeAlert(text, /*optional*/ignored) {
 }
 
 function str(obj) {
-	if (typeof(obj) == 'object') {
+	if (obj === undefined) {
+		return '[undefined]';
+	} else if (typeof(obj) == 'object') {
 		var result = new Array();
 		result.push('{');
 		for (var key in obj) {
@@ -104,6 +106,7 @@ function l33t(s) {
 	r = r.replace('w', 'vv');
 	r = r.replace('m', '|v|');
 	r = r.replace('t', '7');
+	r = r.replace('x', '><');
 	return r;
 }
 
@@ -116,8 +119,8 @@ function capitalizeEveryOther(s) {
 }
 
 randomUsername = function() {
-	var qualities = 'ice fire rain dark night lucky lefty shiny moon dire were jelly'.split(' ');
-	var animals = 'fox squirrel lizard bird wolf monkey quail fish cat cow'.split(' ');
+	var qualities = 'ice fire rain dark night lucky lefty shiny moon dire were jelly gnarl heat flying spider turkey'.split(' ');
+	var animals = 'fox squirrel lizard bird wolf monkey quail fish cat cow goat bat beaver chicken elk mouse ox tortoise toad'.split(' ');
 	var quality = qualities[Math.floor(Math.random() * qualities.length)];
 	var animal = animals[Math.floor(Math.random() * animals.length)];
 	if (Math.random() < 0.1) {
@@ -147,13 +150,13 @@ randomUsername = function() {
 	}
 }
 
-function debug(text, refresh) {
+function debug() {
+	var result = new Array();
+	for (var i=0; i < arguments.length; ++i) {
+		result.push(str(arguments[i]));
+	}
     if (document.getElementById("debug")) {
-        if (refresh != undefined && refresh) {
-            document.getElementById("debug").innerHTML = str(text);
-        } else {
-            document.getElementById("debug").innerHTML += '<br />' + str(text);
-        }
+        document.getElementById("debug").innerHTML += '<br />' + result.join(', ');
     }
 }
 

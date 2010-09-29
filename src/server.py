@@ -120,7 +120,8 @@ class Server(BaseHTTPRequestHandler):
                     data = enumerate(self.rsbp.transactions)
                     title = 'transactions'
                 result = to_html(title, to_table(data))
-                self.send_header('Content-length', len(result))
+                if self.request_version == 'HTTP/1.1':
+                    self.send_header('Content-length', len(result))
                 self.end_headers()
                 self.wfile.write(result)
                 return
@@ -134,6 +135,8 @@ class Server(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', self.types[type_])
                 result = f.read()
+                if self.request_version == 'HTTP/1.1':
+                    self.send_header('Content-length', len(result))
                 self.end_headers()
                 self.wfile.write(result)
             return
@@ -147,7 +150,8 @@ class Server(BaseHTTPRequestHandler):
             #result = self.rsbp.handle(self.rfile.read(int(length[0])))
             self.send_response(200)
             self.send_header('Content-type', 'application/x-www-form-urlencoded')
-            self.send_header('Content-length', len(result))
+            if self.request_version == 'HTTP/1.1':
+                self.send_header('Content-length', len(result))
             self.end_headers()
             self.wfile.write(result)
                 

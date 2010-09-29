@@ -21,11 +21,22 @@ var UserArea = Game.Class({
 	id: 'UserArea',
 	subclass: 'agImage',
 	__init__: function(owner) {
+		debug('userarea', owner);
 		if (owner) {
 			agImage.apply(this, ["div"]);
 		    this.e.style.minWidth = 300;
 		    this.e.style.minHeight = 100;
-		    this.e.style.background = "black";
+		    this.e.style.background = "gray";
+		    this.e.style.opacity = 0.6;
+		    this.e.style.top = 100;
+		    this.e.style.left = 100;
+		    this.e.style.borderStyle = 'dashed';
+		    this.e.style.borderWidth = 'thick';
+		    this.e.style.borderColor = 'black';
+		    this.e.style.fontSize = '24pt';
+		    this.e.style.fontFamily = 'monospace';
+		    this.e.style.fontWeight = 'bold';
+		    this.e.innerHTML = Game.User.decode(owner);
 		    makeDraggable(this);
 		    this.throwRandomly();
 		    this.display();
