@@ -95,17 +95,12 @@ Game.prototype = {
     },
 }
 Game.Class = function(item) {
-    Game.Class[item.name] = function(/*arguments*/) {
-    	item.__init__.apply(this, arguments);
-    };
+    Game.Class[item.name] = item.__init__;
     clone(item, Game.Class[item.name]);
     if (Game.Class[item.name].subclass) {
     	var superclass = Game.Class[Game.Class[item.name].subclass];
-    	var wcon = function() {};
-    	wcon.prototype = superclass.prototype;
-    	Game.Class[item.name].prototype = new wcon();
+    	Game.Class[item.name].prototype = constructFromPrototype(superclass.prototype);
     	clone(item.prototype, Game.Class[item.name].prototype);
-    	Game.Class[item.name].prototype.superclass = superclass;
     }
     return Game.Class[item.name];
 }

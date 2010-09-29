@@ -87,3 +87,7 @@ function debug(text, refresh) {
 function timestamp() {
 	return (new Date()).getTime();
 }
+
+Vector.prototype.theta = function() {
+    return Math.atan2(this.e(2), this.e(1));
+}

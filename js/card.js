@@ -21,7 +21,7 @@ var Card = Game.Class({
 	name: 'Card',
 	subclass: 'agImage',
 	__init__: function(front, back) {
-		this.superclass.apply(this);
+		agImage.apply(this);
 	    this.e.src = front;
 	    makeDraggable(this);
 	    this.images = [front, back];
@@ -39,7 +39,6 @@ Card.createDeck = Game.Constructor({
 	priority: 1,
 	html: '<img src="card/spades-a-75.png" />',
 	action: function(game, jokers) {
-		debug('createDeck' + str(arguments));
 		var jokers = parseInt(jokers);
 	    var suits = "clubs diamonds hearts spades".split(" ");
 	    var ranks = "a 2 3 4 5 6 7 8 9 10 j q k".split(" ");
