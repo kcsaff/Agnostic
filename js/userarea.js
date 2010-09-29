@@ -24,6 +24,7 @@ var UserArea = Game.Class({
 		debug('userarea', owner);
 		if (owner) {
 			agImage.apply(this, ["div"]);
+			this.isFlippable = false;
 		    this.e.style.minWidth = 300;
 		    this.e.style.minHeight = 100;
 		    this.e.style.background = "gray";

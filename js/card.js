@@ -94,7 +94,7 @@ function dragMoveAndRotate(object, event) {
     	    var oldRotation = getAbsoluteRotation(Vector.Zero(2), this.offset)
     	    var amount = mousePos.distanceFrom(oldCenter) / this.offset.modulus();
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
-	    if (amount >= 1 || (!this.x && inVelocity < 0.25)) {
+	    if (!this.isFlippable || amount >= 1 || (!this.x && inVelocity < 0.25)) {
 		    this.object.setRotation(newRotation - oldRotation);
 		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation, Vector.Zero(2)); 
 		    newCenter = mousePos.subtract(newRelativePoint);

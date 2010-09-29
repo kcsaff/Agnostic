@@ -30,6 +30,7 @@ var agImage = Game.Class({
 	    this.e.style.position = "absolute";
 	    this.e.style.zIndex = 1;
 	    this.baseZ = 0;
+	    this.isFlippable = true;
 	},
 	byName: new Object(),
 	byOrder: new Array(),
