@@ -112,3 +112,14 @@ Game.Constructor = function(arg) {
 	Game.Constructor[arg.name].html = arg.html;
 	return Game.Constructor[arg.name];
 }
+Game.getConstructorsByCategory = function(/*optional*/key) {
+    var result = new Object();
+    for (var i in Game.Constructor) {
+	if (key && !Game.Constructor[i][key]) {continue;}
+	var cat = Game.Constructor[i].category;
+	if (!cat) {continue;}
+	if (!result[cat]) {result[cat] = new Array();}
+	result[cat].push(Game.Constructor[i]);
+    }
+    return result;
+}

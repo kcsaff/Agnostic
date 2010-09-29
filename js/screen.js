@@ -176,18 +176,27 @@ Screen.messages = {
 	}
 	},
 	gameElements: function() {
-		var result = new Array();
-		for (var c in Game.Constructor) {
-			if (!Game.Constructor[c] || !Game.Constructor[c].html) {continue;}
-			result.push('<br />');
-			result.push('<label for="'+c+'">');
-			result.push(Game.Constructor[c].html);
-			result.push('</label>');
-			result.push('<br />');
-			result.push('<input type="checkbox" name="item" id="'+c+'" value="'+c+'">')
-			result.push('<br />');
-		}
-		result.push('<br /><input type="submit" value="Done." /></form>');
+	var rows = Game.getConstructorsByCategory('html');
+	var result = new Array();
+	for (var cat in rows) {
+	    result.push('<table><tr align="center">');
+	    for (var i in rows[cat]) {
+		result.push('<td>');
+		result.push('<label for="'+rows[cat][i].name+'">');
+		result.push(rows[cat][i].html);
+		result.push('</label>');		
+		result.push('</td>');
+	    }
+	    result.push('</tr><tr align="center">');
+	    for (var i in rows[cat]) {
+		result.push('<td>');
+		var name = rows[cat][i].name;
+		result.push('<input type="checkbox" name="item" id="'+name+'" value="'+name+'">')
+		result.push('</td>');
+	    }
+	    result.push('</tr></table>');
+	}
+		result.push('<br /><input type="submit" value="Done." />');
 		return result.join("");
 	},
 }

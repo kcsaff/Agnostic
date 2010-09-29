@@ -57,15 +57,6 @@ Card.createDeck = Game.Constructor({
 	}
 });
 
-Game.Constructor({
-	name: "null",
-	category: "null",
-	priority: 1,
-	html: 'Hello',
-	action: function() {
-		Card.createDeck();
-	}
-});
 
 function dragArbitraryRotate(object, event) {
     result = {};
