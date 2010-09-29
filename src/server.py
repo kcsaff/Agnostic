@@ -27,7 +27,7 @@ class RSBP(object): #Really Simple Bounce Protocol
     def check_transactions(self):
         if len(self.transactions) > self.MAX_TRANSACTIONS:
             self.transaction_offset += len(self.transactions) - self.MIN_TRANSACTIONS
-            self.transactions = self.transaction[-self.MIN_TRANSACTIONS:]
+            self.transactions = self.transactions[-self.MIN_TRANSACTIONS:]
     
     def all_data(self):
         return ''.join([stored for _, stored in sorted(self.objects.values())]) 

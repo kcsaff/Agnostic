@@ -125,6 +125,9 @@ var agImage = Game.Class({
 	    display: function() {
 	        document.body.appendChild(this.e);
 	    },
+	    cleanUp: function() {
+	        document.body.removeChild(this.e);
+	    }
     },
 });
 

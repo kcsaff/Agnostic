@@ -66,7 +66,7 @@ RSBP.prototype = {
 				} 
 				this.record.incoming(objectId, null);
 		    } else if (meta[ds2] == 'o') {
-	            this.record.incoming(objectId, null);
+	            this.record.incoming(objectId, payload);
             } else {
             	safeAlert("Unknown data type " + meta[ds2]);
             }
@@ -173,7 +173,7 @@ RSBP.Record.prototype = {
 		} else if (!this.pending[key]) {
             this.objects[key] = [this.transaction++, data];
             this.doCallback(key, data);
-        } else if (!maintain_pending && this.objects[key][1] == data) {
+        } else if (this.objects[key][1] == data) {
             this.pending[key] = false;
         }
     },
@@ -194,7 +194,9 @@ RSBP.Record.prototype = {
     getTransactions: function(/*optional*/all) {
         var arr = new Array();
         for (var key in this.objects) {
-            arr.push([this.objects[key], key]);
+	    if (all || this.pending[key]) {
+		arr.push([this.objects[key], key]);
+	    }
         }
         arr.sort(function(a,b){return a[0][0]-b[0][0];});       
 	var result = new Array();
@@ -204,10 +206,12 @@ RSBP.Record.prototype = {
 	return result;
     },
     attachCallback: function(callback) {
+	debug(callback);
     	var arr = this.getTransactions(true);
         for (var i in arr) {
             callback.incoming(arr[i][1], arr[i][0][1]);
         }
+	this.callbacks.push(callback);
     },
     generate: function(/*optional*/all) {
         var result = new Array();
@@ -218,6 +222,7 @@ RSBP.Record.prototype = {
         for (var i in arr) {
             result.push(RSBP.encode(arr[i][0], arr[i][1]));
         }
+	//debug(result);
         return result.join("");
     },
     reset: function() {
