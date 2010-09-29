@@ -17,9 +17,8 @@ class RSBP(object): #Really Simple Bounce Protocol
     def __init__(self):
         self.lock = threading.RLock()
         self.objects = {}
-        self.transactions = []
+        self.transactions = ['..t1d-']
         self.unique_id = 0
-        self.delete_id = ''
 
     def next_transaction(self):
         return self.transaction_offset + len(self.transactions)
@@ -49,8 +48,6 @@ class RSBP(object): #Really Simple Bounce Protocol
             for item in data.split(RSBP.SEP)[1:]:
                 if item.startswith('d'): #Delete storeD object Data
                     dead = item.split('-',1)[0][1:]
-                    if not dead:
-                        self.delete_id = item.split('-', 1)[1]
                     for key in list(self.objects.keys()):
                         if key.startswith(dead):
                             del self.objects[key]
@@ -64,7 +61,7 @@ class RSBP(object): #Really Simple Bounce Protocol
                     if self.transaction_offset <= transaction:
                         return ''.join(self.transactions[transaction + 1 - self.transaction_offset:])
                     else: #RefResh - Resend all cuRRent object data
-                        return ('%st0d-%s' % (RSBP.SEP, self.delete_id)) + self.all_data()
+                        return self.all_data()
                 elif item.startswith('u'): #UniqUe id reqUest
                     return '..u' + self.next_unique_id()
                 else:
