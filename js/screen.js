@@ -140,7 +140,7 @@ Screen.buttons = {
 	randomName: {
 		value: "New random name",
 		action: function(form) {
-	    	document.getElementById('username').value = Screen.randomUsername();
+	    	document.getElementById('username').value = randomUsername();
 		}	
 	},
 	joinGame: {
@@ -181,6 +181,11 @@ Screen.buttons = {
 			if (errors.length) {
 				document.getElementById('inputerrors').innerHTML = errors.join('<br />');
 			} else {
+				for (var i in this.playerReq) {
+					var key = this.playerReq[i];
+					var value = document.getElementById(key).value;
+					Screen.userdata[key].action.apply(this, [value]);
+				}
 				this.dialogs.playerReq.active = false;
 				this.display();
 			}
@@ -324,7 +329,7 @@ Screen.userdata = {
 		order: -1, 
 		html: '<label for="username">What would you like to be called?&nbsp;&nbsp;</label>' +
 			'<input type="text" id="username" value="'+randomUsername()+'"/>'  
-			//+ Screen.createButton('randomName')
+			+ Screen.createButton('randomName')
 			,
 		validate: function(username) {
 			if (!username) {
@@ -336,6 +341,7 @@ Screen.userdata = {
 			}
 		},
 		action: function(username) {
+			debug('ok...');
 			var player = null;
 			if (this.game.users[username]) {
 				player = this.game.users[username];

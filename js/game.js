@@ -130,6 +130,7 @@ Game.User = Game.Class({
 		this.username = Game.User.decode(username);
 		this.game.users[this.username] = this;
 		this.seated = '';
+		this.serialize();
 	},
 	encode: function(username) {
 		return encodeURIComponent(username);
@@ -147,6 +148,7 @@ Game.User = Game.Class({
 		},
 		remote: {
 			seat: function(id) {
+				debug('seat ' + this.username + ' ' + id);
 				if (this === this.game.player && id == '') {
 					this.serialize();
 				} else {
@@ -158,6 +160,7 @@ Game.User = Game.Class({
 			return !!this.seated;
 		},
 		takeSeat: function() {
+			debug('took seat ' + this.username);
 			var oldUser = this.game.player;
 			this.game.player = this;
 			this.serialize();
