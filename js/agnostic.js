@@ -18,6 +18,7 @@
 */
 
 function numerize(value) {
+	if (typeof (value) == 'number') {return value;}
 	var result = parseInt(value);
 	if (result != NaN) {return result;}
 	return parseInt(value.slice(0, -2)); //get rid of px
@@ -29,7 +30,11 @@ var agImage = Game.Class({
 	    this.e = document.createElement(eltype || "img");
 	    this.e.style.position = "absolute";
 	    this.e.style.zIndex = 1;
+	    this.e.onload = Delegate(this, agImage.onload);
 	    this.baseZ = 0;
+	    this.center = Vector.Zero(2);
+	    this.width = 0;
+	    this.height = 0;
 	    this.isFlippable = true;
 	},
 	byName: new Object(),
@@ -39,26 +44,26 @@ var agImage = Game.Class({
 	        return numerize(this.e.style.left);
 	    },
 	    getRight: function() {
-	        return numerize(this.e.style.left) + this.e.width;
+	        return numerize(this.e.style.left) + this.width;
 	    },
 	    getTop: function() {
 	        return numerize(this.e.style.top);
 	    },
 	    getBottom: function() {
-	        return numerize(this.e.style.top) + this.e.height;
+	        return numerize(this.e.style.top) + this.height;
 	    },
 	    getCenter: function() {
-	        return Vector.create([this.getLeft() + this.e.width / 2, 
-	                              this.getTop() + this.e.height / 2])
+	        return Vector.create([this.getLeft() + this.width / 2, 
+	                              this.getTop() + this.height / 2])
 	    },
 	    contains: function(vector) {
 	        vector = this.toLocalCoords(vector);
-	        return (Math.abs(vector.e(1)) <= this.e.width / 2)
-	            && (Math.abs(vector.e(2)) <= this.e.height / 2);
+	        return (Math.abs(vector.e(1)) <= this.width / 2)
+	            && (Math.abs(vector.e(2)) <= this.height / 2);
 	    },
 	    recenter: function(center) {
-	        this.e.style.left = Math.round(center.e(1) - this.e.width / 2);
-	        this.e.style.top = Math.round(center.e(2) - this.e.height / 2); 
+	        this.e.style.left = Math.round(center.e(1) - this.width / 2);
+	        this.e.style.top = Math.round(center.e(2) - this.height / 2); 
 	    },
 	    serialize:function() {
 	        var center = this.getCenter();
@@ -135,14 +140,22 @@ var agImage = Game.Class({
 	    },
 	    display: function() {
 	        document.body.appendChild(this.e);
-	        if (!this.e.width) {this.e.width = numerize(this.e.style.width || this.e.style.minWidth);}
-	        if (!this.e.height) {this.e.height = numerize(this.e.style.height || this.e.style.minHeight);}
+	        this.width = this.e.width || numerize(this.e.style.minWidth) || 0;
+	        this.height = this.e.height || numerize(this.e.style.minHeight) || 0;
 	    },
 	    cleanUp: function() {
 	        document.body.removeChild(this.e);
 	    }
     },
 });
+agImage.onload = function() {
+	var oldWidth = this.width;
+	var oldHeight = this.height;
+	this.width = this.width || numerize(this.e.width);
+	this.height = this.height || numerize(this.e.height);
+	this.e.style.top = numerize(this.e.style.top) + (oldHeight - this.height) / 2;
+	this.e.style.left = numerize(this.e.style.left) + (oldWidth - this.width) / 2;
+}
 
 function moveToEnd(array, item) {
         if (array.length && array[array.length - 1] === item) return false;

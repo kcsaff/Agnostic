@@ -94,7 +94,7 @@ class FileNotFound(object):
     pass
 
 class Server(BaseHTTPRequestHandler):
-    request_version = "HTTP/1.1"
+    #request_version = "HTTP/1.1"
     paths = {'': '', 
              'js':'js',
              'card': 'card',
@@ -121,7 +121,7 @@ class Server(BaseHTTPRequestHandler):
                     title = 'transactions'
                 result = to_html(title, to_table(data))
                 if self.request_version == 'HTTP/1.1':
-                    self.send_header('Content-length', len(result))
+                    self.send_header('Content-Length', len(result))
                 self.end_headers()
                 self.wfile.write(result)
                 return
@@ -136,7 +136,7 @@ class Server(BaseHTTPRequestHandler):
                 self.send_header('Content-type', self.types[type_])
                 result = f.read()
                 if self.request_version == 'HTTP/1.1':
-                    self.send_header('Content-length', len(result))
+                    self.send_header('Content-Length', len(result))
                 self.end_headers()
                 self.wfile.write(result)
             return
@@ -151,7 +151,7 @@ class Server(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/x-www-form-urlencoded')
             if self.request_version == 'HTTP/1.1':
-                self.send_header('Content-length', len(result))
+                self.send_header('Content-Length', len(result))
             self.end_headers()
             self.wfile.write(result)
                 
