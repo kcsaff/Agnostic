@@ -153,8 +153,8 @@ agImage.onload = function() {
 	var oldHeight = this.height;
 	this.width = this.width || numerize(this.e.width);
 	this.height = this.height || numerize(this.e.height);
-	//this.e.style.top = numerize(this.e.style.top) + (oldHeight - this.height) / 2;
-	//this.e.style.left = numerize(this.e.style.left) + (oldWidth - this.width) / 2;
+	this.e.style.top = numerize(this.e.style.top) + (oldHeight - this.height) / 2;
+	this.e.style.left = numerize(this.e.style.left) + (oldWidth - this.width) / 2;
 }
 
 function moveToEnd(array, item) {
