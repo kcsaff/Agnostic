@@ -25,6 +25,7 @@ function Screen(connection, game) {
 	this.dialogs.start.active = true;
 	this.currentDialog = null;
 	this.joined = false;
+	this.inProgress = false;
 	this.createDialog();
 	this.display();
 	Events.attach('ping', Delegate(this, Screen.events.ping));
@@ -169,11 +170,12 @@ Screen.messages = {
 		}
 	},
 	gameStatus: function() {
-	if (this.game.isInProgress()) {
-	    return this.createButton('joinGame');
-	} else {
-		return this.createButton('startGame');
-	}
+		this.inProgress = this.game.isInProgress();
+		if (this.inProgress) {
+		    return this.createButton('joinGame');
+		} else {
+			return this.createButton('startGame');
+		}
 	},
 	gameElements: function() {
 	var rows = Game.getConstructorsByCategory('html');
@@ -204,7 +206,7 @@ Screen.events = {
 	ping: function() {
 		var wasConnected = this.isConnected();
 		this.lastConnected = timestamp();
-		if (!wasConnected) {
+		if (!wasConnected || this.inProgress != this.game.isInProgress()) {
 			this.display();
 		}
 	},
@@ -220,11 +222,11 @@ Screen.buttons = {
 		label: "No game in progress:  ",
 		value: "Start new game",
 		action: function(form) {
-	    this.dialogs.wait.active = true;	              
+	    	this.dialogs.wait.active = true;	              
 			this.display();
 			this.dialogs.start.active = false;
 			this.dialogs['new'].active = true;
-	    this.dialogs.wait.active = false;	              
+			this.dialogs.wait.active = false;	              
 			this.display();
 		}	
 	},
