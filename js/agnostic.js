@@ -131,8 +131,7 @@ var agImage = Game.Class({
 });
 
 function moveToEnd(array, item) {
-        if (array.length < 1) return false;
-        if (array[array.length - 1] === item) return false;
+        if (array.length && array[array.length - 1] === item) return false;
         var found = -1;
         for (var i = 0; i < array.length; ++i) {
                 if (array[i] === item) {
@@ -140,7 +139,10 @@ function moveToEnd(array, item) {
                         break;
                 }
         }
-        if (found == -1) return false;
+        if (found == -1) {
+	    array.push(item);
+	    return true;
+	}
         for (var i = found; i < array.length - 1; ++i) {
                 array[i] = array[i + 1];
         }

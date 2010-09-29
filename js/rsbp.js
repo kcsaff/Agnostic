@@ -64,7 +64,6 @@ RSBP.prototype = {
                 if (payload == this.id) {
 				    continue;
 				} 
-		debug('DD' + payload + '!=' + this.id);
 				this.record.incoming(objectId, null);
 		    } else if (meta[ds2] == 'o') {
 	            this.record.incoming(objectId, payload);
