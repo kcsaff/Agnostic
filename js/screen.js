@@ -188,7 +188,10 @@ Screen.buttons = {
 					Screen.userdata[key].action.apply(this, [value]);
 				}
 				for (var c in this.game.peruser) {
-				    if (this.game.player[c]) {continue;}
+				    if (this.game.player[c]) {
+					this.game.player[c].claim && this.game.player[c].claim();
+					continue;
+				    }
 					var args = new Array();
 					args.push(c);
 					for (var i in this.game.peruser[c]) {

@@ -52,11 +52,15 @@ Events.form = function(form) {
 				'args': arguments});
 	return false;
 }
-
-Delegate = function(self, fun) {
-	var _self = self;
-	var _fun = fun;
-	return function() {
-		return _fun.apply(_self, arguments);
-	};
+Events.containers = new Array();
+Events.addContainer = function(container) {
+    Events.containers.push(container);
+}
+Events.removeContainer = function(container) {
+    removeFrom(Events.containers, container);
+}
+Events.checkContainer = function(point, object) {
+    for (var c in Events.containers) {
+	Events.containers[c].checkContains(point, object);
+    }
 }

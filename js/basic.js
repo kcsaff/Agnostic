@@ -99,6 +99,13 @@ function indexOf(obj, item) {
 	return null;
 }
 
+function removeFrom(obj, item) {
+    var index = indexOf(obj, item);
+    if (index != null) {
+	obj.splice(index, 1);
+    }
+}
+
 function l33t(s) {
 	var r = s;
 	r = r.replace('i', '!');
@@ -171,3 +178,11 @@ Vector.prototype.theta = function() {
 }
 
 //for (var i = 0; i < 100; ++i) {debug(randomUsername());}
+
+Delegate = function(self, fun) {
+	var _self = self;
+	var _fun = fun;
+	return function() {
+		return _fun.apply(_self, arguments);
+	};
+}

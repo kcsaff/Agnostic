@@ -37,7 +37,6 @@ var agImage = Game.Class({
 	    this.height = numerize(this.e.offsetHeight) || 0;
 	    this.isFlippable = true;
 	},
-	byName: new Object(),
 	byOrder: new Array(),
 	prototype: {
 	    getLeft: function() {//idealized position assuming no rotation.
@@ -64,6 +63,7 @@ var agImage = Game.Class({
 		this.center = center;
 	        this.e.style.left = this.getLeft();
 	        this.e.style.top = this.getTop();
+		Events.checkContainer(this.center, this);
 	    },
 	    serialize:function() {
 	        this.game.outgoing(this.id + '.move',

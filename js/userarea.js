@@ -26,10 +26,15 @@ var UserArea = Game.Class({
 		    var username = Game.User.decode(owner);
 			agImage.apply(this, ["div"]);
 			this.isFlippable = false;
+			this.isClaimed = false;
 		    this.e.style.minWidth = 300;
 		    this.e.style.minHeight = 100;
-		    this.e.style.background = "gray";
-		    this.e.style.opacity = 0.6;
+		    if (this.game.player && username == this.game.player.username) {
+			this.claim();
+		    } else {
+			this.e.style.background = "gray";
+			this.e.style.opacity = 0.6;
+		    }
 		    this.e.style.top = 100;
 		    this.e.style.left = 100;
 		    this.e.style.borderStyle = 'dashed';
@@ -44,12 +49,40 @@ var UserArea = Game.Class({
 		    this.throwRandomly();
 		    this.display();
 		    this.game.users[username]['UserArea'] = this;
-		    
 		} else {
 			this.game.peruser['UserArea'] = ['username'];
 			Events.put({type: 'peruser', cls: 'UserArea', args: ['username']});
 			this.serialize = function() {};
 		}
+	},
+	prototype: {
+	    claim: function() {
+		this.e.style.background = "yellow";
+		this.e.style.opacity = 0.4;
+		Events.addContainer(this);
+		this.isClaimed = true;
+	    },
+	    recenter: function(center) {
+		agImage.prototype.recenter.apply(this, [center]);
+		if (!this.isClaimed) {return;}
+		for (var i in agImage.byOrder) {
+		    var obj = agImage.byOrder[i];
+		    this.checkContains(obj.center, obj);
+		}
+	    },
+	    checkContains: function(point, object) {
+		var contains = !!this.contains(point);
+		//only handle changes.
+		if (contains == !!object.__fliphack) {return;}
+		object.__fliphack = contains;
+		object.images && object.images.reverse();
+		object.flip(0);
+	    },
+	    cleanUp: function() {
+		this.contents = null;
+		Events.removeContainer(this);
+		agImage.cleanUp.apply(this);
+	    }
 	}
 });
 
