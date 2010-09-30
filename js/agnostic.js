@@ -30,7 +30,7 @@ var agImage = Game.Class({
 	    this.e = document.createElement(eltype || "img");
 	    this.e.style.position = "absolute";
 	    this.e.style.zIndex = 1;
-	    this.e.onload = Delegate(this, agImage.onload);
+	    this.e.onload = Delegate(this, this.fixDimensions);
 	    this.baseZ = 0;
 	    this.center = Vector.Zero(2);
 	    this.width = numerize(this.e.offsetWidth) || 0;
@@ -138,23 +138,22 @@ var agImage = Game.Class({
 	    toGlobalCoords: function(localCoords) {
 	        return this.getTransformation().x(localCoords).add(this.getCenter());
 	    },
+	    fixDimensions: function() {//only needs to be called when dims might have changed.
+	        this.width = numerize(this.e.offsetWidth) || numerize(this.e.width) 
+		|| numerize(this.e.style.minWidth) || this.width || 0;
+	        this.height = numerize(this.e.offsetHeight) || numerize(this.e.height)
+		|| numerize(this.e.style.minHeight) || this.height || 0;
+		this.recenter(this.center);
+	    },
 	    display: function() {
 	        document.body.appendChild(this.e);
-	        this.width = numerize(this.e.offsetWidth) || numerize(this.e.width) 
-		|| numerize(this.e.style.minWidth) || 0;
-	        this.height = numerize(this.e.offsetHeight) || numerize(this.e.height)
-		|| numerize(this.e.style.minHeight) || 0;
+	        this.fixDimensions();
 	    },
 	    cleanUp: function() {
 	        document.body.removeChild(this.e);
 	    }
     },
 });
-agImage.onload = function() {
-	this.width = numerize(this.e.offsetWidth) || numerize(this.e.width) || this.width;
-	this.height = numerize(this.e.offsetHeight) || numerize(this.e.height) || this.height;
-	this.recenter(this.center);
-}
 
 function moveToEnd(array, item) {
         if (array.length && array[array.length - 1] === item) return false;
