@@ -217,24 +217,25 @@ function dragFlip(object, event) {
     return result;
 }
 
+Card.onmousedown = function(ev) {
+    if (Mouse.getButton(ev) == 'middle' 
+	|| (Mouse.getButton(ev) == 'left' && ev.shiftKey)) {
+	Mouse.action = dragFlip(this, ev);
+    } 
+    else if (Mouse.getButton(ev) == 'left') {
+	Mouse.action = dragMoveAndRotate(this, ev);
+    } else {
+	alert("" + this.getCenter().e(1) + " " + this.getCenter().e(2))
+	//alert("" + Mouse.getCoords(ev).e(1) + " " + Mouse.getCoords(ev).e(2));
+    }
+    if (Mouse.action) {
+	this.moveToFront();
+	Mouse.move(ev);
+    }
+    return false;
+}
+
 function makeDraggable(item) {
 	if (!item) return;
-        var self = item;
-	self.e.onmousedown = function(ev) {//TODO: circular reference.
-	    if (Mouse.getButton(ev) == 'middle' 
-		|| (Mouse.getButton(ev) == 'left' && ev.shiftKey)) {
-			Mouse.action = dragFlip(self, ev);
-		} 
-		else if (Mouse.getButton(ev) == 'left') {
-			Mouse.action = dragMoveAndRotate(self, ev);
-		} else {
-			alert("" + self.getCenter().e(1) + " " + self.getCenter().e(2))
-			//alert("" + Mouse.getCoords(ev).e(1) + " " + Mouse.getCoords(ev).e(2));
-		}
-		if (Mouse.action) {
-		    self.moveToFront();
-		    Mouse.move(ev);
-		}
-		return false;
-	}
+	item.e.onmousedown = Delegate(item, Card.onmousedown);
 }

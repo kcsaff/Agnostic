@@ -23,6 +23,7 @@ var UserArea = Game.Class({
 	__init__: function(owner) {
 		debug('userarea', owner);
 		if (owner) {
+		    var username = Game.User.decode(owner);
 			agImage.apply(this, ["div"]);
 			this.isFlippable = false;
 		    this.e.style.minWidth = 300;
@@ -38,10 +39,11 @@ var UserArea = Game.Class({
 		    this.e.style.fontFamily = 'monospace';
 		    this.e.style.fontWeight = 'bold';
 		    this.e.style.overflow = 'hidden';
-		    this.e.innerHTML = Game.User.decode(owner);
+		    this.e.innerHTML = username;
 		    makeDraggable(this);
 		    this.throwRandomly();
 		    this.display();
+		    this.game.users[username]['UserArea'] = this;
 		    
 		} else {
 			this.game.peruser['UserArea'] = ['username'];
