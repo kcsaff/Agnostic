@@ -33,28 +33,27 @@ var agImage = Game.Class({
 	    this.e.onload = Delegate(this, agImage.onload);
 	    this.baseZ = 0;
 	    this.center = Vector.Zero(2);
-	    this.width = 0;
-	    this.height = 0;
+	    this.width = numerize(this.e.offsetWidth) || 0;
+	    this.height = numerize(this.e.offsetHeight) || 0;
 	    this.isFlippable = true;
 	},
 	byName: new Object(),
 	byOrder: new Array(),
 	prototype: {
-	    getLeft: function() {
-	        return numerize(this.e.style.left);
+	    getLeft: function() {//idealized position assuming no rotation.
+	        return Math.round(this.center.e(1) - this.width / 2);
 	    },
 	    getRight: function() {
-	        return numerize(this.e.style.left) + this.width;
+	        return Math.round(this.center.e(1) + this.width / 2);
 	    },
 	    getTop: function() {
-	        return numerize(this.e.style.top);
+	        return Math.round(this.center.e(2) - this.height / 2);
 	    },
 	    getBottom: function() {
-	        return numerize(this.e.style.top) + this.height;
+	        return Math.round(this.center.e(2) + this.height / 2);
 	    },
 	    getCenter: function() {
-	        return Vector.create([this.getLeft() + this.width / 2, 
-	                              this.getTop() + this.height / 2])
+	        return this.center;
 	    },
 	    contains: function(vector) {
 	        vector = this.toLocalCoords(vector);
@@ -62,13 +61,14 @@ var agImage = Game.Class({
 	            && (Math.abs(vector.e(2)) <= this.height / 2);
 	    },
 	    recenter: function(center) {
-	        this.e.style.left = Math.round(center.e(1) - this.width / 2);
-	        this.e.style.top = Math.round(center.e(2) - this.height / 2); 
+		this.center = center;
+	        this.e.style.left = this.getLeft();
+	        this.e.style.top = this.getTop();
 	    },
 	    serialize:function() {
-	        var center = this.getCenter();
 	        this.game.outgoing(this.id + '.move',
-	                            "" + Math.round(center.e(1)) + " " + Math.round(center.e(2)) + " " 
+	                            "" + Math.round(this.center.e(1)) + 
+				   " " + Math.round(this.center.e(2)) + " " 
 	                            + Math.round(this.currentRotation || 0) + " "
 	                            + (this.image_index || 0));
 	    },
@@ -140,8 +140,10 @@ var agImage = Game.Class({
 	    },
 	    display: function() {
 	        document.body.appendChild(this.e);
-	        this.width = numerize(this.e.width) || numerize(this.e.style.minWidth) || 0;
-	        this.height = numerize(this.e.height) || numerize(this.e.style.minHeight) || 0;
+	        this.width = numerize(this.e.offsetWidth) || numerize(this.e.width) 
+		|| numerize(this.e.style.minWidth) || 0;
+	        this.height = numerize(this.e.offsetHeight) || numerize(this.e.height)
+		|| numerize(this.e.style.minHeight) || 0;
 	    },
 	    cleanUp: function() {
 	        document.body.removeChild(this.e);
@@ -149,12 +151,9 @@ var agImage = Game.Class({
     },
 });
 agImage.onload = function() {
-	var oldWidth = this.width;
-	var oldHeight = this.height;
-	this.width = this.width || numerize(this.e.width);
-	this.height = this.height || numerize(this.e.height);
-	this.e.style.top = numerize(this.e.style.top) + (oldHeight - this.height) / 2;
-	this.e.style.left = numerize(this.e.style.left) + (oldWidth - this.width) / 2;
+	this.width = numerize(this.e.offsetWidth) || numerize(this.e.width) || this.width;
+	this.height = numerize(this.e.offsetHeight) || numerize(this.e.height) || this.height;
+	this.recenter(this.center);
 }
 
 function moveToEnd(array, item) {

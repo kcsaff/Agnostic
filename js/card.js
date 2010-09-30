@@ -74,13 +74,7 @@ function dragArbitraryRotate(object, event) {
     return result;
 }
 
-function dragMoveAndRotate(object, event) {
-    var result = {};
-    result.object = object;
-    object.width, object.height;//firefox workaround??
-    result.offset = object.toLocalCoords(Mouse.getCoords(event));
-    result.lastPos = Mouse.getCoords(event);
-    result.move = function (mousePos) {
+function doDragMoveAndRotate(mousePos) {
         var thisTime = (new Date()).getTime();
 	if (Math.abs(this.offset.e(1)) < this.object.width / 4
 	        && Math.abs(this.offset.e(2)) < this.object.height / 4) {//move only
@@ -187,7 +181,15 @@ function dragMoveAndRotate(object, event) {
 	this.lastTime = thisTime;
       this.lastPos = mousePos;
       return false;
-    }
+}
+
+function dragMoveAndRotate(object, event) {
+    var result = {};
+    result.object = object;
+    object.width, object.height;//firefox workaround??
+    result.offset = object.toLocalCoords(Mouse.getCoords(event));
+    result.lastPos = Mouse.getCoords(event);
+    result.move = doDragMoveAndRotate;
     result.drop = function () {
 	snapRotation(this.object, 90, 12);
     }
