@@ -94,7 +94,7 @@ class FileNotFound(object):
     pass
 
 class Server(BaseHTTPRequestHandler):
-    #request_version = "HTTP/1.1"
+    request_version = "HTTP/1.1"
     paths = {'': '', 
              'js':'js',
              'card': 'card',
@@ -104,6 +104,7 @@ class Server(BaseHTTPRequestHandler):
     types = {'.html': 'text/html',
              '.js': 'text/javascript',
              '.png': 'image/png',
+             '.css': 'text/css',
              }
     rsbp=RSBP()
 

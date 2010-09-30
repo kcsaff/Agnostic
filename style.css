@@ -1,0 +1,14 @@
+
+.UserArea {	
+    min-width: 300;
+    min-height: 100;
+    border-style: dashed;
+    border-width: thick;
+    border-color: black;
+    font-size: 24pt;
+    font-family: monospace;
+    font-weight: bold;
+    overflow: hidden;
+    background-color: gray;
+    opacity: 0.6;
+}

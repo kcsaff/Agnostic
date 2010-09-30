@@ -27,23 +27,10 @@ var UserArea = Game.Class({
 			agImage.apply(this, ["div"]);
 			this.isFlippable = false;
 			this.isClaimed = false;
-		    this.e.style.minWidth = 300;
-		    this.e.style.minHeight = 100;
+			this.e.className = 'UserArea';
 		    if (this.game.player && username == this.game.player.username) {
 			this.claim();
-		    } else {
-			this.e.style.background = "gray";
-			this.e.style.opacity = 0.6;
-		    }
-		    this.e.style.top = 100;
-		    this.e.style.left = 100;
-		    this.e.style.borderStyle = 'dashed';
-		    this.e.style.borderWidth = 'thick';
-		    this.e.style.borderColor = 'black';
-		    this.e.style.fontSize = '24pt';
-		    this.e.style.fontFamily = 'monospace';
-		    this.e.style.fontWeight = 'bold';
-		    this.e.style.overflow = 'hidden';
+		    } 
 		    this.e.innerHTML = username;
 		    makeDraggable(this);
 		    this.throwRandomly();
@@ -90,7 +77,7 @@ UserArea.construct = Game.Constructor({
 	id: "userArea",
 	category: "user",
 	priority: 1,
-	html: 'USER AREA',
+	html: '<div class="UserArea">User area</div>',
 	action: function(game, owner) {
 		game.create('UserArea', owner);
 	}
