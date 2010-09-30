@@ -17,3 +17,20 @@
     background-color: yellow;
     opacity: 0.4;
 }
+
+.Shuffler {
+    min-width: 170px;
+    min-height: 170px;
+    border-style: dotted;
+    border-width: thick;
+    text-align: center;
+    opacity: 0.3;
+    color: white;
+    background-color: blue;
+    font-weight: bold;
+    font-family: monospace;
+    font-size: 36pt;
+    overflow: hidden;
+    border-radius: 50px;
+    -moz-border-radius: 50px;
+}

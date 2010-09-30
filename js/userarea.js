@@ -65,9 +65,8 @@ var UserArea = Game.Class({
 		object.flip(0);
 	    },
 	    cleanUp: function() {
-		this.contents = null;
 		Events.removeContainer(this);
-		agImage.cleanUp.apply(this);
+		agImage.prototype.cleanUp.apply(this);
 	    }
 	}
 });
