@@ -40,7 +40,7 @@ var Shuffler = Game.Class({
 	    },
 	    checkContains: function(point, object) {
 		var contains = !!this.contains(point);
-		if (contains && Math.random() < 0.1) {
+		if (contains && Math.random() < 0.142857) {
 		    object.image_index = 1; object.flip(0);
 		    object.move(Vector.create([Math.round(Math.random() * 6 - 3),
 					       Math.round(Math.random() * 6 - 3)]));
