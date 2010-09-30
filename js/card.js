@@ -26,6 +26,7 @@ var Card = Game.Class({
 	    makeDraggable(this);
 	    this.images = [front, back];
 	    this.throwRandomly();
+		this.isFlippable = true;
 	    if (Math.random() < 0.33) {
 	    	this.flip();
 	    }
@@ -89,7 +90,7 @@ function doDragMoveAndRotate(mousePos) {
     	    var oldRotation = getAbsoluteRotation(Vector.Zero(2), this.offset)
     	    var amount = mousePos.distanceFrom(oldCenter) / this.offset.modulus();
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
-	    if (!this.isFlippable || amount >= 1 || (!this.x && inVelocity < 0.25)) {
+	    if (!this.object.isFlippable || amount >= 1 || (!this.x && inVelocity < 0.25)) {
 		    this.object.setRotation(newRotation - oldRotation);
 		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation, Vector.Zero(2)); 
 		    newCenter = mousePos.subtract(newRelativePoint);
