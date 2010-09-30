@@ -1,5 +1,5 @@
 
-.UserArea {	
+.UserArea,.UserAreaClaimed {	
     min-width: 300;
     min-height: 100;
     border-style: dashed;
@@ -11,4 +11,9 @@
     overflow: hidden;
     background-color: gray;
     opacity: 0.6;
+}
+
+.UserAreaClaimed {
+    background-color: yellow;
+    opacity: 0.4;
 }

@@ -148,6 +148,7 @@ var agImage = Game.Class({
 	    display: function() {
 	        document.body.appendChild(this.e);
 	        this.fixDimensions();
+		this.moveToFront();
 	    },
 	    cleanUp: function() {
 	        document.body.removeChild(this.e);

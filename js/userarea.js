@@ -44,8 +44,7 @@ var UserArea = Game.Class({
 	},
 	prototype: {
 	    claim: function() {
-		this.e.style.background = "yellow";
-		this.e.style.opacity = 0.4;
+		this.e.className = 'UserAreaClaimed';
 		Events.addContainer(this);
 		this.isClaimed = true;
 	    },
@@ -77,7 +76,7 @@ UserArea.construct = Game.Constructor({
 	id: "userArea",
 	category: "user",
 	priority: 1,
-	html: '<div class="UserArea">User area</div>',
+	html: '<div class="UserAreaClaimed">User area</div>',
 	action: function(game, owner) {
 		game.create('UserArea', owner);
 	}
