@@ -51,6 +51,8 @@ function safeAlert(text, /*optional*/ignored) {
 function str(obj) {
 	if (obj === undefined) {
 		return '[undefined]';
+	} else if (obj === null) {
+		return '[null]';
 	} else if (typeof(obj) == 'object') {
 		var result = new Array();
 		result.push('{');

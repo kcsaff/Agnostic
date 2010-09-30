@@ -139,7 +139,7 @@ Game.User = Game.Class({
 		this.serialize();
 	},
 	encode: function(username) {
-		return encodeURIComponent(username);
+		return encodeURIComponent(username).replace(/[.]/g, '%2E');
 	},
 	decode: function(username) {
 		return decodeURIComponent(username);

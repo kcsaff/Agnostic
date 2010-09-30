@@ -70,6 +70,7 @@ Screen.prototype = {
 		this.idialog.style.display = 'none';
 	},
 	fadeDialog: function() {
+		if (this.currentDialog !== null) {return;}
 		this.idialog.style.display = 'none';
 		var opacity = parseFloat(this.dialog.style.opacity);
 		opacity -= 0.03;
@@ -107,10 +108,10 @@ Screen.prototype = {
 			return;
 		}
 		this.currentDialog = activeDialog;
-		if (activeDialog == null) {
+		if (this.currentDialog === null) {
 			this.fadeDialog(); return;
 		}
-		this.idialog.innerHTML = activeDialog.html;
+		this.idialog.innerHTML = this.currentDialog.html;
 		this.applyMessages();
 		this.showDialog();
 	},
@@ -227,6 +228,7 @@ Screen.createButton = function(name) {
 
 Screen.dialogs = {
 	'start': {
+		id: 'start',
 		refresh: true,
 		priority: 10, 
 		html:
@@ -234,6 +236,7 @@ Screen.dialogs = {
 '<div id="gameStatus"></div>'
 	},
 	'new': {
+		id: 'new',
 		priority: 11,
 		html:
 'Add some game elements to begin.' +
@@ -241,10 +244,12 @@ Screen.dialogs = {
 '</form>'
 	},
 	'wait': {
+		id: 'wait',
 	    priority: 100,
 	    html: '<div>Please wait...</div><div>(Math is hard!)</div>'
 	},
 	'playerReq': {
+		id: 'playerReq',
 		priority: 9,
 		html:
 			'Please answer a question or two before entering the game.' +
