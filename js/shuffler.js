@@ -65,7 +65,7 @@ var DiscardDeck = Game.Class({
 	subclass: 'agImage',
 	__init__: function(image_index) {
 	    agImage.apply(this, ['div']);
-	    this.image_index = image_index || 0;
+	    this.image_index = parseInt(image_index) || 0;
 	    this.contents = new Array();
 	    this.showCount();
 	    this.e.className = 'DiscardDeck';
@@ -147,6 +147,16 @@ DiscardDeck.construct = Game.Constructor({
 	html: '<div class="DiscardDeck">discard</div>',
 	action: function(game, owner) {
 		game.create('DiscardDeck');
+	}
+});
+
+DiscardDeck.drawDeck = Game.Constructor({
+	id: "DrawDeck",
+	category: "tool",
+	priority: 1,
+	html: '<div class="DiscardDeck">draw</div>',
+	action: function(game, owner) {
+		game.create('DiscardDeck 1');
 	}
 });
 
