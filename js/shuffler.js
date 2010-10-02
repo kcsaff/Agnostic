@@ -75,13 +75,13 @@ Shuffler.onmousedown = function(ev) {
 var DiscardDeck = Game.Class({
 	id: 'DiscardDeck',
 	subclass: 'agImage',
-	__init__: function() {
+	__init__: function(image_index) {
 	    agImage.apply(this, ['div']);
+	    this.image_index = image_index || 0;
 	    this.contents = new Array();
-	    this.count = 0;
+	    this.showCount();
 	    this.isFlippable = false;
 	    this.e.className = 'DiscardDeck';
-	    this.e.innerHTML = 'discard';
 	    this.e.onmousedown = Delegate(this, Shuffler.onmousedown);	
 	    //this.baseZ = -1000;
 	    this.throwRandomly();
@@ -102,10 +102,14 @@ var DiscardDeck = Game.Class({
 	        this.game.outgoing(this.id + '.contents', this.contents.join(" "));
 	    },
 	    showCount: function() {
-		this.e.innerHTML = this.contents.length;
+		if (this.contents.length) {
+		    this.e.innerHTML = this.contents.length;
+		} else {
+		    this.e.innerHTML = this.image_index ? 'draw' : 'discard';
+		}
 	    },
 	    pullIn: function(object) {
-		object.image_index = 0; object.flip(0);
+		object.image_index = this.image_index; object.flip(0);
 		object.recenter(this.center);
 		object.setRotation(this.getRotation());
 		object.moveToFront();
