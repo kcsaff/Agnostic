@@ -147,7 +147,8 @@ var agImage = Game.Class({
 		this.recenter(this.center);
 	    },
 	    display: function() {
-	        document.body.appendChild(this.e);
+		var body = document.getElementById("main") || document.body;
+	        body.appendChild(this.e);
 	        this.fixDimensions();
 		this.moveToFront();
 	    },

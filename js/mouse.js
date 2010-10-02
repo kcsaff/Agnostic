@@ -19,12 +19,31 @@
 
 var Mouse = new Object();
 Mouse.action = null;
-Mouse.getCoords = function (ev) {
-        if (ev.pageX || ev.pageY) {
-                return Vector.create([ev.pageX, ev.pageY]);
+Mouse.getCoords = function (event) {
+        if (event.pageX || event.pageY) {
+                return Vector.create([event.pageX, event.pageY]);
         }
-        return Vector.create([ev.clientX + document.body.scrollLeft - document.body.clientLeft,
-                              ev.clientY + document.body.scrollTop - document.body.clientTop]);
+        return Vector.create([event.clientX + document.body.scrollLeft - document.body.clientLeft,
+                              event.clientY + document.body.scrollTop - document.body.clientTop]);
+}
+function _getPosition(e) {
+    var left = 0; 
+    var top  = 0; 
+    while (e.offsetParent){ 
+	left += e.offsetLeft; 
+	top  += e.offsetTop; 
+	e     = e.offsetParent; 
+    } 
+	 
+    left += e.offsetLeft; 
+    top  += e.offsetTop; 
+
+    return Vector.create([left, top]); 
+}
+Mouse.getOffset = function(ev, rel) {
+    if (!rel) {rel = document.getElementById("main");}
+    if (!rel) {return Mouse.getCoords(ev);}
+    return Mouse.getCoords(ev).subtract(_getPosition(rel)); 
 }
 Mouse._bwhich = [0, 'left', 'middle', 'right']; //most
 Mouse._bbutton = ['left', 'left', 'right', 0, 'middle']; //IE
@@ -37,7 +56,7 @@ Mouse.getButton = function(event) {
 }
 Mouse.move = function(ev) {
         ev = ev || window.event;
-        var mousePos = Mouse.getCoords(ev);
+        var mousePos = Mouse.getOffset(ev);
         if (Mouse.action && Mouse.getButton(ev)) {
             var result = Mouse.action.move(mousePos);
             if (Mouse.action.object) {
@@ -46,6 +65,12 @@ Mouse.move = function(ev) {
         }
 }
 Mouse.down = function(ev) {
+    var main = document.getElementById("main");
+    if (!main || Mouse.action) {return true;}
+    if (Mouse.getButton(ev) == "left") {
+	Mouse.action = Motion.rawMove(main, ev);
+    }
+    return true;
 }
 Mouse.up = function() {
     if (Mouse.action && Mouse.action.drop) {
@@ -57,5 +82,6 @@ Mouse.up = function() {
     Mouse.action = null;
     return false;
 }
+document.onmousedown = Mouse.down;
 document.onmousemove = Mouse.move;
 document.onmouseup = Mouse.up;

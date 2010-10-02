@@ -1,3 +1,8 @@
+div#main {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
 
 .UserArea,.UserAreaClaimed {	
     min-width: 300;

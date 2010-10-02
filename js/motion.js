@@ -28,8 +28,23 @@ Motion._dragMove = function(mousePos) {
 Motion.dragMove = function(object, event) {
     return {
 	'object': object,
-	'lastPos': Mouse.getCoords(event),
+	'lastPos': Mouse.getOffset(event),
 	'move': Motion._dragMove
+    };
+}
+
+Motion._rawMove = function(mousePos) {
+    var movement = mousePos.subtract(this.lastPos);
+    this.element.style.left = numerize(this.element.style.left || 0) + movement.e(1);
+    this.element.style.top = numerize(this.element.style.top || 0) + movement.e(2);
+    this.lastPos = mousePos;
+    return false;
+}
+Motion.rawMove = function(element, event) {
+    return {
+	'element': element,
+	'lastPos': Mouse.getOffset(event),
+	'move': Motion._rawMove
     };
 }
 
@@ -64,8 +79,8 @@ Motion.dragMoveAndRotate = function(object, event) {
     var result = {};
     result.object = object;
     object.width, object.height;//firefox workaround??
-    result.offset = object.toLocalCoords(Mouse.getCoords(event));
-    result.lastPos = Mouse.getCoords(event);
+    result.offset = object.toLocalCoords(Mouse.getOffset(event));
+    result.lastPos = Mouse.getOffset(event);
     result.move = Motion._dragMoveAndRotate;
     result.drop = function () {
 	snapRotation(this.object, 90, 12);
@@ -185,8 +200,8 @@ Motion.dragMoveRotateAndFlip = function(object, event) {
     var result = {};
     result.object = object;
     object.width, object.height;//firefox workaround??
-    result.offset = object.toLocalCoords(Mouse.getCoords(event));
-    result.lastPos = Mouse.getCoords(event);
+    result.offset = object.toLocalCoords(Mouse.getOffset(event));
+    result.lastPos = Mouse.getOffset(event);
     result.move = Motion._dragMoveRotateAndFlip;
     result.drop = function () {
 	snapRotation(this.object, 90, 12);
@@ -220,7 +235,7 @@ Motion.dragFlip = function(object, event) {
 Motion.dragArbitraryRotate = function(object, event) {
     var result = {};
     result.object = object;
-    result.mouseFirstPos = Mouse.getCoords(event);
+    result.mouseFirstPos = Mouse.getOffset(event);
     result.firstRotation = object.currentRotation || 0;
     result.move = function (mousePos) {
         newRotation = getRelativeRotation(this.object.getCenter(),
