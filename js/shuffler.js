@@ -77,43 +77,60 @@ var DiscardDeck = Game.Class({
 	subclass: 'agImage',
 	__init__: function() {
 	    agImage.apply(this, ['div']);
-	    //this.contents = new Array();
+	    this.contents = new Array();
 	    this.count = 0;
 	    this.isFlippable = false;
 	    this.e.className = 'DiscardDeck';
 	    this.e.innerHTML = 'discard';
 	    this.e.onmousedown = Delegate(this, Shuffler.onmousedown);	
-	    this.baseZ = -1000;
-	    this.f = new agImage('div');
-	    this.f.e.className = 'DiscardDeckNum';
-	    this.f.e.innerHTML = "0";
-	    this.f.baseZ = 4000;
-	    this.f.e.onmousedown = this.e.onmousedown;	
+	    //this.baseZ = -1000;
 	    this.throwRandomly();
 	    this.setRotation(0, 0);
 	    Events.addContainer(this);
 	    this.display();
-	    this.f.display();
 	},
 	prototype: {
 	    recenter: function(center) {
+		for (var i in this.contents) {
+		    var obj = this.game.objects[this.contents[i]];
+		    obj.recenter(center);
+		    obj.moveToFront();
+		}
 		agImage.prototype.recenter.apply(this, [center]);
-		this.f.recenter(center);
 	    },
-	    checkContains: function(point, object, dropped) {
-		if (!dropped || !this.contains(point)) {return;}
+	    serialize: function() {
+		agImage.prototype.serialize.apply(this);
+	        this.serializeContents();
+	    },
+	    serializeContents: function() {
+	        this.game.outgoing(this.id + '.contents', this.contents.join(" "));
+	    },
+	    showCount: function() {
+		this.e.innerHTML = this.contents.length;
+	    },
+	    pullIn: function(object) {
 		object.image_index = 0; object.flip(0);
 		object.recenter(this.center);
 		object.setRotation(this.getRotation());
+		object.moveToFront();
 		this.adjustOnMouseDown(object);
-		this.f.e.innerHTML = ++this.count;
+		this.contents.push(object.id);
+		this.showCount();
+	    },
+	    checkContains: function(point, object, dropped) {
+		if (!dropped || !this.contains(point)) {return;}
+		this.pullIn(object);
+		this.serializeContents();
 	    },
 	    cleanUp: function() {
+		this.contents = null;
 		Events.removeContainer(this);
 		agImage.cleanUp.apply(this);
 	    },
 	    removeItem: function(obj) {
-		this.f.e.innerHTML = --this.count;
+		removeFrom(this.contents, obj.id);
+		this.showCount();
+		this.serializeContents();
 	    },
 	    adjustOnMouseDown: function(object) {
 		var onmousedown = object.e.onmousedown;
@@ -123,6 +140,15 @@ var DiscardDeck = Game.Class({
 		    self.removeItem(obj);
 		    this.onmousedown = onmousedown;
 		    return onmousedown.apply(this, arguments);
+		}
+	    },
+	    remote: {
+		move: agImage.prototype.remote.move,
+		contents: function(/*arguments*/) {
+		    this.contents = new Array();
+		    for (var i = 0; i < arguments.length; ++i) {
+			arguments[i] && this.pullIn(this.game.objects[arguments[i]]);
+		    }
 		}
 	    }
 	}

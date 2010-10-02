@@ -36,25 +36,16 @@
 }
 
 .DiscardDeck {
-    min-width: 100px;
-    min-height: 160px;
+    min-width: 110px;
+    min-height: 180px;
     border-style: dotted;
     border-width: thick;
+    border-color: gray;
     text-align: center;
     opacity: 0.7;
     color: white;
     background-color: green;
     overflow: hidden;
-    border-radius: 15px;
-    -moz-border-radius: 15px;
-}
-
-.DiscardDeckNum {
-    text-align: center;
-    opacity: 1;
-    color: white;
-    background-color: green;
-    overflow: hidden;
-    border-radius: 15px;
-    -moz-border-radius: 15px;
+    border-radius: 25px;
+    -moz-border-radius: 25px;
 }

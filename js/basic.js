@@ -53,6 +53,17 @@ function str(obj) {
 		return '[undefined]';
 	} else if (obj === null) {
 		return '[null]';
+	} else if (typeof(obj) == "string") {
+	    return obj;
+	} else if (obj.length !== undefined) {
+		var result = new Array();
+		result.push('[');
+		for (var i = 0; i < obj.length; ++i) {
+			result.push(obj[i]);
+			result.push(', ');
+		}
+		result.push(']');
+		return result.join('');
 	} else if (typeof(obj) == 'object') {
 		var result = new Array();
 		result.push('{');
@@ -64,15 +75,6 @@ function str(obj) {
 			result.push(', ');
 		}
 		result.push('}');
-		return result.join('');
-	} else if (typeof(obj) == 'array') {
-		var result = new Array();
-		result.push('[');
-		for (var key in obj) {
-			result.push(obj[key]);
-			result.push(', ');
-		}
-		result.push(']');
 		return result.join('');
 	} else {
 		return String(obj);
