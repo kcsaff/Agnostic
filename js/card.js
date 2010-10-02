@@ -193,6 +193,7 @@ function dragMoveAndRotate(object, event) {
     result.move = doDragMoveAndRotate;
     result.drop = function () {
 	snapRotation(this.object, 90, 12);
+	Events.checkContainer(this.object.getCenter(), this.object, true);
     }
     return result;
 }

@@ -59,8 +59,8 @@ Events.addContainer = function(container) {
 Events.removeContainer = function(container) {
     removeFrom(Events.containers, container);
 }
-Events.checkContainer = function(point, object) {
+Events.checkContainer = function(point, object, /*optional*/ dropped) {
     for (var c in Events.containers) {
-	Events.containers[c].checkContains(point, object);
+	Events.containers[c].checkContains(point, object, dropped);
     }
 }
