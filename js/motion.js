@@ -33,7 +33,8 @@ Motion.dragMove = function(object, event) {
     };
 }
 
-Motion._rawMove = function(mousePos) {
+Motion._rawMove = function(mousePos, event) {
+    mousePos = Mouse.getCoords(event);
     var movement = mousePos.subtract(this.lastPos);
     this.element.style.left = numerize(this.element.style.left || 0) + movement.e(1);
     this.element.style.top = numerize(this.element.style.top || 0) + movement.e(2);
@@ -43,7 +44,7 @@ Motion._rawMove = function(mousePos) {
 Motion.rawMove = function(element, event) {
     return {
 	'element': element,
-	'lastPos': Mouse.getOffset(event),
+	'lastPos': Mouse.getCoords(event),
 	'move': Motion._rawMove
     };
 }

@@ -40,10 +40,13 @@ function _getPosition(e) {
 
     return Vector.create([left, top]); 
 }
+document.getElementById("main").__transform = Matrix.Diagonal([2, 2]);
 Mouse.getOffset = function(ev, rel) {
     if (!rel) {rel = document.getElementById("main");}
     if (!rel) {return Mouse.getCoords(ev);}
-    return Mouse.getCoords(ev).subtract(_getPosition(rel)); 
+    var raw = Mouse.getCoords(ev).subtract(_getPosition(rel)); 
+    if (!rel.__transform) {return raw;}
+    return rel.__transform.x(raw);
 }
 Mouse._bwhich = [0, 'left', 'middle', 'right']; //most
 Mouse._bbutton = ['left', 'left', 'right', 0, 'middle']; //IE
@@ -58,7 +61,7 @@ Mouse.move = function(ev) {
         ev = ev || window.event;
         var mousePos = Mouse.getOffset(ev);
         if (Mouse.action && Mouse.getButton(ev)) {
-            var result = Mouse.action.move(mousePos);
+            var result = Mouse.action.move(mousePos, ev);
             if (Mouse.action.object) {
                 Mouse.action.object.serialize();
             }
