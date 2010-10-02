@@ -32,7 +32,6 @@ var UserArea = Game.Class({
 			this.claim();
 		    } 
 		    this.e.innerHTML = username;
-		    makeDraggable(this);
 		    this.throwRandomly();
 		    this.display();
 		    this.game.users[username]['UserArea'] = this;
@@ -43,6 +42,8 @@ var UserArea = Game.Class({
 		}
 	},
 	prototype: {
+	    responseToLeftMouse: dragMoveAndRotate,
+	    responseToMiddleMouse: dragFlip,
 	    claim: function() {
 		this.e.className = 'UserAreaClaimed';
 		Events.addContainer(this);

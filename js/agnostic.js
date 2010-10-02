@@ -157,9 +157,9 @@ var agImage = Game.Class({
 	    onmousedown: function(event) {
 		if (Mouse.getButton(event) == 'middle' 
 		    || (event.shiftKey && Mouse.getButton(event) == 'left')) {
-		    Mouse.action = this.responseToMiddleMouse(event);
+		    Mouse.action = this.responseToMiddleMouse(this, event);
 		} else if (Mouse.getButton(event) == 'left') {
-		    Mouse.action = this.responseToLeftMouse(event);
+		    Mouse.action = this.responseToLeftMouse(this, event);
 		} else {
 		    alert("" + this.getCenter().e(1) + " " + this.getCenter().e(2))
 		}
@@ -169,10 +169,10 @@ var agImage = Game.Class({
 		}
 		return false;
 	    },
-	    responseToLeftMouse: function(event) {
+	    responseToLeftMouse: function(self, event) {
 		return null;
 	    },
-	    responseToMiddleMouse: function(event) {
+	    responseToMiddleMouse: function(self, event) {
 		return null;
 	    }
     },

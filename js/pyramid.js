@@ -29,12 +29,8 @@ var Pyramid = Game.Class({
 	    this.display();
 	},
 	prototype: {
-	    responseToLeftMouse: function(event) {
-		return dragMoveAndRotate(this, event);
-	    },
-	    responseToMiddleMouse: function(event) {
-		return dragFlip(this, event);
-	    }
+	    responseToLeftMouse: dragMoveAndRotate,
+	    responseToMiddleMouse: dragFlip,
 	}
 });
 

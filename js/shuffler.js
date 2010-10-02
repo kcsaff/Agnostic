@@ -31,9 +31,7 @@ var Shuffler = Game.Class({
 	    this.display();
 	},
 	prototype: {
-	    responseToLeftMouse: function(event) {
-		return Motion.dragMove(this, event);
-	    },
+	    responseToLeftMouse: Motion.dragMove,
 	    checkAll: function() {
 		for (var i in agImage.byOrder) {
 		    var obj = agImage.byOrder[i];
@@ -79,9 +77,7 @@ var DiscardDeck = Game.Class({
 	    this.display();
 	},
 	prototype: {
-	    responseToLeftMouse: function(event) {
-		return Motion.dragMove(this, event);
-	    },
+	    responseToLeftMouse: Motion.dragMove,
 	    recenter: function(center) {
 		for (var i in this.contents) {
 		    var obj = this.game.objects[this.contents[i]];
