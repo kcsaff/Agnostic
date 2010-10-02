@@ -22,7 +22,6 @@ var Shuffler = Game.Class({
 	subclass: 'agImage',
 	__init__: function() {
 	    agImage.apply(this, ['div']);
-	    this.isFlippable = false;
 	    this.e.className = 'Shuffler';
 	    this.e.innerHTML = '?';
 	    this.baseZ = 1000;
@@ -69,7 +68,6 @@ var DiscardDeck = Game.Class({
 	    this.image_index = image_index || 0;
 	    this.contents = new Array();
 	    this.showCount();
-	    this.isFlippable = false;
 	    this.e.className = 'DiscardDeck';
 	    this.throwRandomly();
 	    this.setRotation(0, 0);

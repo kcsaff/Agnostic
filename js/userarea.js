@@ -25,7 +25,6 @@ var UserArea = Game.Class({
 		if (owner) {
 		    var username = Game.User.decode(owner);
 			agImage.apply(this, ["div"]);
-			this.isFlippable = false;
 			this.isClaimed = false;
 			this.e.className = 'UserArea';
 		    if (this.game.player && username == this.game.player.username) {

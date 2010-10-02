@@ -29,7 +29,7 @@ var Pyramid = Game.Class({
 	    this.display();
 	},
 	prototype: {
-	    responseToLeftMouse: Motion.dragMoveAndRotate,
+	    responseToLeftMouse: Motion.dragMoveRotateAndFlip,
 	    responseToMiddleMouse: Motion.dragFlip,
 	}
 });

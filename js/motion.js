@@ -49,7 +49,46 @@ Motion._dragMoveAndRotate = function(mousePos) {
     	    var oldRotation = getAbsoluteRotation(Vector.Zero(2), this.offset)
     	    var amount = mousePos.distanceFrom(oldCenter) / this.offset.modulus();
 	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
-	    if (!this.object.isFlippable || amount >= 1 || (!this.x && inVelocity < 0.25)) {
+	    this.object.setRotation(newRotation - oldRotation);
+	    var newRelativePoint = this.offset.rotate(newRotation - oldRotation, Vector.Zero(2)); 
+	    newCenter = mousePos.subtract(newRelativePoint);
+	    this.object.recenter(newCenter);
+	    this.x = null; this.y = null;
+	  }
+	this.lastTime = thisTime;
+      this.lastPos = mousePos;
+      return false;
+}
+
+Motion.dragMoveAndRotate = function(object, event) {
+    var result = {};
+    result.object = object;
+    object.width, object.height;//firefox workaround??
+    result.offset = object.toLocalCoords(Mouse.getCoords(event));
+    result.lastPos = Mouse.getCoords(event);
+    result.move = Motion._dragMoveAndRotate;
+    result.drop = function () {
+	snapRotation(this.object, 90, 12);
+	Events.checkContainer(this.object.getCenter(), this.object, true);
+    }
+    return result;
+}
+Motion._dragMoveRotateAndFlip = function(mousePos) {
+        var thisTime = (new Date()).getTime();
+	if (Math.abs(this.offset.e(1)) < this.object.width / 4
+	        && Math.abs(this.offset.e(2)) < this.object.height / 4) {//move only
+	    this.object.move(mousePos.subtract(this.lastPos));
+	} else {
+            this.velocity = mousePos.subtract(this.lastPos).x(1 / (thisTime - this.lastTime))
+              || Vector.Zero(2);
+            var inVelocity = (this.lastPos.distanceFrom(this.object.getCenter()) 
+			      - mousePos.distanceFrom(this.object.getCenter())) 
+                              / (thisTime - this.lastTime) || 0;
+	    var oldCenter = this.object.getCenter();
+    	    var oldRotation = getAbsoluteRotation(Vector.Zero(2), this.offset)
+    	    var amount = mousePos.distanceFrom(oldCenter) / this.offset.modulus();
+	    var newRotation = getAbsoluteRotation(oldCenter, mousePos);
+	    if (amount >= 1 || (!this.x && inVelocity < 0.25)) {
 		    this.object.setRotation(newRotation - oldRotation);
 		    var newRelativePoint = this.offset.rotate(newRotation - oldRotation, Vector.Zero(2)); 
 		    newCenter = mousePos.subtract(newRelativePoint);
@@ -143,13 +182,13 @@ Motion._dragMoveAndRotate = function(mousePos) {
       return false;
 }
 
-Motion.dragMoveAndRotate = function(object, event) {
+Motion.dragMoveRotateAndFlip = function(object, event) {
     var result = {};
     result.object = object;
     object.width, object.height;//firefox workaround??
     result.offset = object.toLocalCoords(Mouse.getCoords(event));
     result.lastPos = Mouse.getCoords(event);
-    result.move = Motion._dragMoveAndRotate;
+    result.move = Motion._dragMoveRotateAndFlip;
     result.drop = function () {
 	snapRotation(this.object, 90, 12);
 	Events.checkContainer(this.object.getCenter(), this.object, true);

@@ -25,14 +25,13 @@ var Card = Game.Class({
 	    this.e.src = front;
 	    this.images = [front, back];
 	    this.throwRandomly();
-		this.isFlippable = true;
 	    if (Math.random() < 0.33) {
 	    	this.flip();
 	    }
 	    this.display();
 	},
 	prototype: {
-	    responseToLeftMouse: Motion.dragMoveAndRotate,
+	    responseToLeftMouse: Motion.dragMoveRotateAndFlip,
 	    responseToMiddleMouse: Motion.dragFlip,
 	}
 });
