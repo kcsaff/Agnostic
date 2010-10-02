@@ -26,12 +26,14 @@ var Shuffler = Game.Class({
 	    this.e.className = 'Shuffler';
 	    this.e.innerHTML = '?';
 	    this.baseZ = 1000;
-	    this.e.onmousedown = Delegate(this, Shuffler.onmousedown);
 	    this.throwRandomly();
 	    this.setRotation(0, 0);
 	    this.display();
 	},
 	prototype: {
+	    responseToLeftMouse: function(event) {
+		return Motion.dragMove(this, event);
+	    },
 	    checkAll: function() {
 		for (var i in agImage.byOrder) {
 		    var obj = agImage.byOrder[i];
@@ -61,17 +63,6 @@ Shuffler.construct = Game.Constructor({
 	}
 });
 
-Shuffler.onmousedown = function(ev) {
-    if (Mouse.getButton(ev) == 'left') {
-	Mouse.action = Motion.dragMove(this, ev);
-    } 
-    if (Mouse.action) {
-	this.moveToFront();
-	Mouse.move(ev);
-    }
-    return false;
-}
-
 var DiscardDeck = Game.Class({
 	id: 'DiscardDeck',
 	subclass: 'agImage',
@@ -82,14 +73,15 @@ var DiscardDeck = Game.Class({
 	    this.showCount();
 	    this.isFlippable = false;
 	    this.e.className = 'DiscardDeck';
-	    this.e.onmousedown = Delegate(this, Shuffler.onmousedown);	
-	    //this.baseZ = -1000;
 	    this.throwRandomly();
 	    this.setRotation(0, 0);
 	    Events.addContainer(this);
 	    this.display();
 	},
 	prototype: {
+	    responseToLeftMouse: function(event) {
+		return Motion.dragMove(this, event);
+	    },
 	    recenter: function(center) {
 		for (var i in this.contents) {
 		    var obj = this.game.objects[this.contents[i]];
@@ -163,6 +155,4 @@ DiscardDeck.construct = Game.Constructor({
 		game.create('DiscardDeck');
 	}
 });
-
-DiscardDeck.onmousedown = Shuffler.onmousedown;
 
