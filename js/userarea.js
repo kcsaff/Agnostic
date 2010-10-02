@@ -42,8 +42,8 @@ var UserArea = Game.Class({
 		}
 	},
 	prototype: {
-	    responseToLeftMouse: dragMoveAndRotate,
-	    responseToMiddleMouse: dragFlip,
+	    responseToLeftMouse: Motion.dragMoveAndRotate,
+	    responseToMiddleMouse: Motion.dragFlip,
 	    claim: function() {
 		this.e.className = 'UserAreaClaimed';
 		Events.addContainer(this);
