@@ -31,6 +31,7 @@ var agImage = Game.Class({
 	    this.e.style.position = "absolute";
 	    this.e.style.zIndex = 1;
 	    this.e.onload = Delegate(this, this.fixDimensions);
+	    this.e.onmousedown = Delegate(this, this.onmousedown);
 	    this.baseZ = 0;
 	    this.center = Vector.Zero(2);
 	    this.width = numerize(this.e.offsetWidth) || 0;
@@ -152,6 +153,27 @@ var agImage = Game.Class({
 	    },
 	    cleanUp: function() {
 	        document.body.removeChild(this.e);
+	    },
+	    onmousedown: function(event) {
+		if (Mouse.getButton(event) == 'middle' 
+		    || (event.shiftKey && Mouse.getButton(event) == 'left')) {
+		    Mouse.action = this.responseToMiddleMouse(event);
+		} else if (Mouse.getButton(event) == 'left') {
+		    Mouse.action = this.responseToLeftMouse(event);
+		} else {
+		    alert("" + this.getCenter().e(1) + " " + this.getCenter().e(2))
+		}
+		if (Mouse.action) {
+		    this.moveToFront();
+		    Mouse.move(event);
+		}
+		return false;
+	    },
+	    responseToLeftMouse: function(event) {
+		return null;
+	    },
+	    responseToMiddleMouse: function(event) {
+		return null;
 	    }
     },
 });

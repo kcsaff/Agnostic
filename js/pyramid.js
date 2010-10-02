@@ -23,11 +23,18 @@ var Pyramid = Game.Class({
 	__init__: function(src) {
 		agImage.apply(this);
 	    this.e.src = src;
-	    makeDraggable(this);
 	    this.images = [src];
 		this.baseZ = 200; //show above all cards.
 	    this.throwRandomly();
 	    this.display();
+	},
+	prototype: {
+	    responseToLeftMouse: function(event) {
+		return dragMoveAndRotate(this, event);
+	    },
+	    responseToMiddleMouse: function(event) {
+		return dragFlip(this, event);
+	    }
 	}
 });
 

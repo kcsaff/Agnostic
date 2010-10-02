@@ -23,7 +23,6 @@ var Card = Game.Class({
 	__init__: function(front, back) {
 		agImage.apply(this);
 	    this.e.src = front;
-	    makeDraggable(this);
 	    this.images = [front, back];
 	    this.throwRandomly();
 		this.isFlippable = true;
@@ -31,6 +30,14 @@ var Card = Game.Class({
 	    	this.flip();
 	    }
 	    this.display();
+	},
+	prototype: {
+	    responseToLeftMouse: function(event) {
+		return dragMoveAndRotate(this, event);
+	    },
+	    responseToMiddleMouse: function(event) {
+		return dragFlip(this, event);
+	    }
 	}
 });
 
@@ -217,24 +224,6 @@ function dragFlip(object, event) {
         return false; 
     }
     return result;
-}
-
-Card.onmousedown = function(ev) {
-    if (Mouse.getButton(ev) == 'middle' 
-	|| (Mouse.getButton(ev) == 'left' && ev.shiftKey)) {
-	Mouse.action = dragFlip(this, ev);
-    } 
-    else if (Mouse.getButton(ev) == 'left') {
-	Mouse.action = dragMoveAndRotate(this, ev);
-    } else {
-	alert("" + this.getCenter().e(1) + " " + this.getCenter().e(2))
-	//alert("" + Mouse.getCoords(ev).e(1) + " " + Mouse.getCoords(ev).e(2));
-    }
-    if (Mouse.action) {
-	this.moveToFront();
-	Mouse.move(ev);
-    }
-    return false;
 }
 
 function makeDraggable(item) {
