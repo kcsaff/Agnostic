@@ -51,6 +51,8 @@ Mouse.getOffset = function(ev, rel) {
 Mouse._bwhich = [0, 'left', 'middle', 'right']; //most
 Mouse._bbutton = ['left', 'left', 'right', 0, 'middle']; //IE
 Mouse.getButton = function(event) {
+    var wheel = -event.detail || event.wheelData;
+    if (wheel) {return (wheel > 0) ? "scrollup" : "scrolldown";}
     if (event.which) {
         return Mouse._bwhich[event.which];
     } else {
