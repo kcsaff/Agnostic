@@ -174,6 +174,9 @@ var agImage = Game.Class({
 	    },
 	    responseToMiddleMouse: function(self, event) {
 		return null;
+	    },
+	    isNearCenterOfMass: function(point) {
+		return true;
 	    }
     },
 });

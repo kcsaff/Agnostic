@@ -75,8 +75,7 @@ Motion.dragMoveAndRotate = function(object, event) {
 }
 Motion._dragMoveRotateAndFlip = function(mousePos) {
         var thisTime = (new Date()).getTime();
-	if (Math.abs(this.offset.e(1)) < this.object.width / 4
-	        && Math.abs(this.offset.e(2)) < this.object.height / 4) {//move only
+	if (this.object.isNearCenterOfMass && this.object.isNearCenterOfMass(this.offset)) {//move only
 	    this.object.move(mousePos.subtract(this.lastPos));
 	} else {
             this.velocity = mousePos.subtract(this.lastPos).x(1 / (thisTime - this.lastTime))

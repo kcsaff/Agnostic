@@ -31,6 +31,9 @@ var Pyramid = Game.Class({
 	prototype: {
 	    responseToLeftMouse: Motion.dragMoveRotateAndFlip,
 	    responseToMiddleMouse: Motion.dragFlip,
+	    isNearCenterOfMass: function(vector) {
+		return vector.e(2) > 0; 
+	    }
 	}
 });
 

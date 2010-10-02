@@ -33,6 +33,10 @@ var Card = Game.Class({
 	prototype: {
 	    responseToLeftMouse: Motion.dragMoveRotateAndFlip,
 	    responseToMiddleMouse: Motion.dragFlip,
+	    isNearCenterOfMass: function(vector) {
+		return Math.abs(vector.e(1)) < this.width / 4
+		    && Math.abs(vector.e(2)) < this.height / 4; 
+	    }
 	}
 });
 
