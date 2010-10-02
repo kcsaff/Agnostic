@@ -98,10 +98,6 @@ var DiscardDeck = Game.Class({
 		}
 		agImage.prototype.recenter.apply(this, [center]);
 	    },
-	    serialize: function() {
-		agImage.prototype.serialize.apply(this);
-	        this.serializeContents();
-	    },
 	    serializeContents: function() {
 	        this.game.outgoing(this.id + '.contents', this.contents.join(" "));
 	    },
