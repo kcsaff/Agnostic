@@ -27,6 +27,7 @@ function Game(/*optional*/ record) {
     this.player = null;
     this.users = new Object();
     this.peruser = new Object();
+    Events.attach('game', Delegate(this, this.action));    
 }
 Game.prototype = {
     isInProgress: function() {
@@ -66,6 +67,11 @@ Game.prototype = {
 		for (var key in this.objects) {
 		    this.remove(key);
 		}
+	//Events.attach('game', Delegate(this, this.action));
+    },
+    action: function(event) {
+	var obj = this.objects[event.id];
+	obj[event.action].apply(obj);
     },
     create: function(data, id) {
 	this.inProgress = true;
@@ -102,6 +108,9 @@ Game.prototype = {
 		    }
 		}
     },
+}
+Game.action = function(id, action) {
+    Events.put({'type': 'game', 'id': id, 'action': action});
 }
 Game.Class = function(item) {
     Game.Class[item.id] = item.__init__;

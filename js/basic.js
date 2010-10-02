@@ -108,6 +108,15 @@ function removeFrom(obj, item) {
     }
 }
 
+function shuffle(array) {//fisher yates to the rescue.
+    for (var i = array.length; i > 0; --i) {
+	var j = Math.floor(Math.random() * i);
+	var temp = array[i-1];
+	array[i-1] = array[j];
+	array[j] = temp;
+    }
+}
+
 function l33t(s) {
 	var r = s;
 	r = r.replace('i', '!');

@@ -49,3 +49,7 @@
     border-radius: 25px;
     -moz-border-radius: 25px;
 }
+
+.DiscardDeck a:link {
+    color: white;
+}

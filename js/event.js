@@ -21,7 +21,7 @@ function Events() {}
 Events.queue = new Array();
 Events.handlers = new Object();
 Events.get = function() {return Events.queue.shift();}
-Events.put = function(event) {Events.queue.push(event);}
+Events.put = function(event) {Events.queue.push(event); Events.handle(1);}
 Events.attach = function(type, handler) {
 	if (!Events.handlers[type]) {Events.handlers[type] = new Array();}
 	for (var i=0; i < Events.handlers[type].length; ++i) {

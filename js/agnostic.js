@@ -107,8 +107,8 @@ var agImage = Game.Class({
 			        if (this.images) {
 			        	this.image_index = parseInt(i || 0) % this.images.length;
 				        this.e.src = this.images[this.image_index];
-			        } else {
-			        	this.image_index = 0;
+			        } else if (this.image_index === undefined) {
+			        	this.image_index = parseInt(i || 0);
 			        }
 			        this.recenter(center);
 			        this.setRotation(0, degrees);

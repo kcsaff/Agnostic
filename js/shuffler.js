@@ -87,9 +87,19 @@ var DiscardDeck = Game.Class({
 	    serializeContents: function() {
 	        this.game.outgoing(this.id + '.contents', this.contents.join(" "));
 	    },
+	    shuffle: function() {
+		shuffle(this.contents);
+		for (var i in this.contents) {
+		    var obj = this.game.objects[this.contents[i]];
+		    obj.moveToFront();
+		}
+		this.serializeContents();
+	    },
 	    showCount: function() {
 		if (this.contents.length) {
-		    this.e.innerHTML = this.contents.length;
+		    var html = '<a href="javascript:Game.action(\'' + this.id + '\', \'shuffle\')">shuffle</a> ' 
+		    + this.contents.length;
+		    this.e.innerHTML = html;
 		} else {
 		    this.e.innerHTML = this.image_index ? 'draw' : 'discard';
 		}
@@ -135,6 +145,7 @@ var DiscardDeck = Game.Class({
 		    for (var i = 0; i < arguments.length; ++i) {
 			arguments[i] && this.pullIn(this.game.objects[arguments[i]]);
 		    }
+		    this.showCount();
 		}
 	    }
 	}
@@ -146,7 +157,7 @@ DiscardDeck.construct = Game.Constructor({
 	priority: 1,
 	html: '<div class="DiscardDeck">discard</div>',
 	action: function(game, owner) {
-		game.create('DiscardDeck');
+		game.create('DiscardDeck 0');
 	}
 });
 
