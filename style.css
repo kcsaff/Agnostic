@@ -2,7 +2,33 @@ div#main {
     position: absolute;
     left: 0;
     top: 0;
-    -moz-transform: scale(0.5, 0.5);
+    overflow: visible;
+}
+
+div#dialog {
+    position: absolute;
+    background: white;
+    opacity: 0.85;
+    z-index: 1000000;
+    left: 0;
+    top: 0;
+}
+
+center#idialog {
+    position: absolute;
+    z-index: 1000001;
+    left: 0;
+    top: 20%;
+    height: 80%;
+    overflow: auto;
+}
+
+body, html {
+    margin-left: 0px;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    overflow: hidden; 
 }
 
 .UserArea,.UserAreaClaimed {	

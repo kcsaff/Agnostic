@@ -35,9 +35,7 @@ Motion.dragMove = function(object, event) {
 
 Motion._rawMove = function(mousePos, event) {
     mousePos = Mouse.getCoords(event);
-    var movement = mousePos.subtract(this.lastPos);
-    this.element.style.left = numerize(this.element.style.left || 0) + movement.e(1);
-    this.element.style.top = numerize(this.element.style.top || 0) + movement.e(2);
+    movePosition(this.element, mousePos.subtract(this.lastPos));
     this.lastPos = mousePos;
     return false;
 }

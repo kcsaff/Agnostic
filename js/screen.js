@@ -37,12 +37,6 @@ Screen.prototype = {
 	createDialog: function() {
 	    this.dialog = document.createElement("div");
 	    this.dialog.id = "dialog";
-	    this.dialog.style.position = "absolute";
-	    this.dialog.style.background = "white";
-	    this.dialog.style.opacity = 0.85;
-	    this.dialog.style.zIndex = 10000;
-	    this.dialog.style.left = 0;
-	    this.dialog.style.top = 0;
 	    this.dialog.width = window.innerWidth;
 	    this.dialog.height = window.innerHeight;
 	    this.dialog.style.minWidth = window.innerWidth;
@@ -51,12 +45,9 @@ Screen.prototype = {
 	    document.body.appendChild(this.dialog);
 	    this.idialog = document.createElement("center");
 	    this.idialog.id = "idialog";
-	    this.idialog.style.position = "absolute";
-	    this.idialog.style.zIndex = 10001;
-	    this.idialog.style.top = 200;
-	    this.idialog.width = window.innerWidth;
+	    this.idialog.style.width = window.innerWidth;
+	    this.idialog.style.height = window.innerHeight - numerize(this.idialog.style.top);
 	    this.idialog.style.minWidth = window.innerWidth;
-	    this.idialog.style.left = 0;
 	    this.dialog.style.display = 'none';
 	    document.body.appendChild(this.idialog);
 	},

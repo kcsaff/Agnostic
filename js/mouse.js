@@ -26,7 +26,7 @@ Mouse.getCoords = function (event) {
         return Vector.create([event.clientX + document.body.scrollLeft - document.body.clientLeft,
                               event.clientY + document.body.scrollTop - document.body.clientTop]);
 }
-function _getPosition(e) {
+function getPosition(e) {
     var left = 0; 
     var top  = 0; 
     while (e.offsetParent){ 
@@ -40,19 +40,27 @@ function _getPosition(e) {
 
     return Vector.create([left, top]); 
 }
-document.getElementById("main").__transform = Matrix.Diagonal([2, 2]);
+function setPosition(e, vector) {
+    movePosition(e, vector.subtract(getPosition(e)));
+}
+function movePosition(e, movement) {
+    e.style.left = numerize(e.style.left || 0) + movement.e(1);
+    e.style.top = numerize(e.style.top || 0) + movement.e(2);
+}
+function getWindowCenter() {
+    return Vector.create([window.innerWidth / 2, window.innerHeight / 2]);
+}
+//document.getElementById("main").__transform = Matrix.Diagonal([2, 2]);
 Mouse.getOffset = function(ev, rel) {
     if (!rel) {rel = document.getElementById("main");}
     if (!rel) {return Mouse.getCoords(ev);}
-    var raw = Mouse.getCoords(ev).subtract(_getPosition(rel)); 
+    var raw = Mouse.getCoords(ev).subtract(getPosition(rel)); 
     if (!rel.__transform) {return raw;}
-    return rel.__transform.x(raw);
+    return rel.__transform.inv().x(raw);
 }
 Mouse._bwhich = [0, 'left', 'middle', 'right']; //most
 Mouse._bbutton = ['left', 'left', 'right', 0, 'middle']; //IE
 Mouse.getButton = function(event) {
-    var wheel = -event.detail || event.wheelData;
-    if (wheel) {return (wheel > 0) ? "scrollup" : "scrolldown";}
     if (event.which) {
         return Mouse._bwhich[event.which];
     } else {
@@ -75,7 +83,7 @@ Mouse.down = function(ev) {
     if (Mouse.getButton(ev) == "left") {
 	Mouse.action = Motion.rawMove(main, ev);
     }
-    return true;
+    return false;
 }
 Mouse.up = function() {
     if (Mouse.action && Mouse.action.drop) {
@@ -87,6 +95,38 @@ Mouse.up = function() {
     Mouse.action = null;
     return false;
 }
+Mouse.getWheel = function(event) {
+    var wheel = -event.detail || event.wheelData;
+    if (wheel) {return (wheel > 0) ? "wheelup" : "wheeldown";}
+}
+Mouse.wheel = function(event) {
+    var what = Mouse.getWheel(event);
+    var obj = document.getElementById("main");
+    if (!obj) {return;}
+    if (!obj.__zoom) {obj.__zoom = 1;}
+    var oldVec = getPosition(obj).subtract(getWindowCenter()).x(1 / obj.__zoom);
+    if (what == "wheelup") {
+	obj.__zoom *= 1.6;
+    } else if (what == "wheeldown") {
+	obj.__zoom /= 1.6;
+    }
+    if (obj.__zoom > 1) {
+	obj.__zoom = Math.round(obj.__zoom);
+    }
+    if (obj.__zoom > 10) {obj.__zoom = 10;}
+    if (obj.__zoom < 0.1) {obj.__zoom = 0.1;}
+    var newVec = oldVec.x(obj.__zoom);
+    setPosition(obj, getWindowCenter().add(newVec));
+    obj.__transform = Matrix.Diagonal([obj.__zoom, obj.__zoom]);
+    obj.style.MozTransform = "scale(" + obj.__zoom + ", " + obj.__zoom + ")";
+}
+
 document.onmousedown = Mouse.down;
 document.onmousemove = Mouse.move;
 document.onmouseup = Mouse.up;
+document.onmousewheel = Mouse.wheel;
+
+if (document.addEventListener) {
+    document.addEventListener('DOMMouseScroll', Mouse.wheel, false);
+    document.addEventListener('mousewheel', Mouse.wheel, false);
+}
