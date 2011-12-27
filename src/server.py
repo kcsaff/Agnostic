@@ -1,4 +1,4 @@
-
+#!/usr/bin/python
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
 import os.path
@@ -169,7 +169,8 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option('-p', '--port', dest='port',
                       help='serve on PORT', metavar='PORT',
-                      default=80)
+                      default=80,
+                      type='int')
     parser.add_option('--threaded', dest='threaded',
                       action='store_true',
                       help='run the server in multithreading mode',
